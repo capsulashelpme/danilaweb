@@ -135,7 +135,7 @@
 .brands-track {
   display: flex;
   width: max-content;
-  animation: brands-scroll 35s linear infinite;
+  animation: brands-scroll 20s linear infinite;
 }
 
 /* Un grupo = todos los logos, con gap uniforme.
