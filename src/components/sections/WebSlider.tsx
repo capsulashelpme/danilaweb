@@ -1,5 +1,6 @@
 import { useInfiniteSlider } from '@/hooks/useInfiniteSlider'
 import { useMediaAssets } from '@/components/admin/MediaManager'
+import { SliderVideo, SliderImg } from '@/components/ui/SliderMedia'
 
 // ── Tu web lista para vender ──────────────────────────────────
 interface WebDemo {
@@ -56,10 +57,10 @@ function WebCard({ d }: { d: WebDemo }) {
       </div>
 
       {/* Screenshot / video */}
-      <div style={{ flex: 1, overflow: 'hidden' }}>
+      <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
         {(d.file.includes('.mp4') || d.file.includes('.mov') || d.file.includes('.webm'))
-          ? <video src={d.file} autoPlay loop muted playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }} />
-          : <img src={d.file} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }} />
+          ? <SliderVideo src={d.file} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }} />
+          : <SliderImg   src={d.file} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }} />
         }
       </div>
     </div>

@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react'
 import { useInfiniteSlider } from '@/hooks/useInfiniteSlider'
 import { useMediaAssets, type MediaAsset } from '@/components/admin/MediaManager'
+import { SliderVideo, SliderImg } from '@/components/ui/SliderMedia'
 
 function formatViews(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`
@@ -117,27 +117,14 @@ function VideoCard({ v }: { v: VideoItem }) {
   )
 }
 
+const CARD_STYLE: React.CSSProperties = {
+  width: '100%', height: '100%',
+  objectFit: 'cover', objectPosition: 'top center', display: 'block',
+}
+
 export function VideoSlider() {
   const trackRef = useInfiniteSlider(0.032)
   const { assets: dbAssets, loaded } = useMediaAssets('contenido_organico')
-  const sectionRef = useRef<HTMLElement>(null)
-
-  useEffect(() => {
-    const section = sectionRef.current
-    if (!section) return
-    const io = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        section.querySelectorAll('video[preload="metadata"]').forEach(v => {
-          const vid = v as HTMLVideoElement
-          vid.load()
-          vid.play().catch(() => {})
-        })
-        io.disconnect()
-      }
-    }, { rootMargin: '200px 0px 0px 0px' })
-    io.observe(section)
-    return () => io.disconnect()
-  }, [])
 
   const useDb = loaded && dbAssets.length > 0
   const items = useDb
@@ -145,7 +132,7 @@ export function VideoSlider() {
     : [...VIDEOS, ...VIDEOS, ...VIDEOS]
 
   return (
-    <section ref={sectionRef} id="contenido" style={{ padding: '72px 0' }}>
+    <section id="contenido" style={{ padding: '72px 0' }}>
       <div style={{ width: '100%', maxWidth: 1200, margin: '0 auto', padding: '0 20px' }}>
         <div className="reveal" style={{ textAlign: 'center', marginBottom: 40 }}>
           <span className="eyebrow">Contenido Orgánico</span>
@@ -188,8 +175,8 @@ export function VideoSlider() {
                     border: '1px solid rgba(255,255,255,0.08)', userSelect: 'none', pointerEvents: 'none',
                   }}>
                     {a.type === 'video'
-                      ? <video src={a.url} autoPlay loop muted playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }} />
-                      : <img   src={a.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }} />
+                      ? <SliderVideo src={a.url} style={CARD_STYLE} />
+                      : <SliderImg   src={a.url} style={CARD_STYLE} />
                     }
                     {/* Bottom overlay: views */}
                     {views > 0 && (
