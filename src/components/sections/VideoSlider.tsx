@@ -132,7 +132,7 @@ export function VideoSlider() {
   const useFallback = loaded && dbAssets.length === 0
 
   const baseItems = useDb
-    ? dbAssets
+    ? dbAssets.filter(a => a.url && a.url.trim() !== '') // filtrar URLs inválidas
     : useFallback
     ? VIDEOS
     : null   // null = todavía cargando

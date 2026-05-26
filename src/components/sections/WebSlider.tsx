@@ -73,7 +73,9 @@ export function WebSlider() {
 
   const useDb   = loaded && dbAssets.length > 0
   const baseWeb = useDb
-    ? dbAssets.map(a => ({ id: a.id, file: a.url, type: a.type }))
+    ? dbAssets
+        .filter(a => a.url && a.url.trim() !== '') // filtrar URLs inválidas
+        .map(a => ({ id: a.id, file: a.url, type: a.type }))
     : DEMOS.map(d => ({ ...d, type: 'image' as const }))
   const items = [...baseWeb, ...baseWeb, ...baseWeb]
 

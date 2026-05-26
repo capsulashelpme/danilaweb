@@ -1,13 +1,9 @@
-import { useEffect, useRef } from 'react'
 import { useInfiniteSlider } from '@/hooks/useInfiniteSlider'
 import { useMediaAssets } from '@/components/admin/MediaManager'
+import { SliderVideo, SliderImg } from '@/components/ui/SliderMedia'
 
-// ── Creativos reales — imágenes, GIFs y videos ────────────────
-interface Creative {
-  id: string
-  file: string   // ruta en /public/ads/
-  type: 'image' | 'video' | 'gif'
-}
+// ── Creativos locales (fallback si no hay assets en DB) ────────
+interface Creative { id: string; file: string; type: 'image' | 'video' }
 
 const CREATIVES: Creative[] = [
   { id: '1', file: '/ads/1.png',  type: 'image' },
@@ -21,81 +17,44 @@ const CREATIVES: Creative[] = [
   { id: '9', file: '/ads/9.mp4',  type: 'video' },
 ]
 
-// ── Single ad card ────────────────────────────────────────────
+const CARD_STYLE: React.CSSProperties = {
+  width: '100%', height: '100%',
+  objectFit: 'cover', objectPosition: 'top center', display: 'block',
+}
+
 function AdCard({ c }: { c: Creative }) {
   return (
     <div
       aria-hidden="true"
-      data-slider-card=""
       style={{
-        position: 'relative',
-        width: 260,
-        height: 260,
-        flexShrink: 0,
-        borderRadius: 20,
-        overflow: 'hidden',
-        background: '#0a0a0a',
+        position: 'relative', width: 260, height: 260, flexShrink: 0,
+        borderRadius: 20, overflow: 'hidden',
+        background: '#0d0d0d',
         border: '1px solid rgba(255,255,255,0.08)',
-        userSelect: 'none',
-        pointerEvents: 'none',
+        userSelect: 'none', pointerEvents: 'none',
       }}
     >
-      {c.type === 'video' ? (
-        <video
-          src={c.file}
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="metadata"
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-        />
-      ) : (
-        <img
-          src={c.file}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-        />
-      )}
+      {c.type === 'video'
+        ? <SliderVideo src={c.file} style={CARD_STYLE} />
+        : <SliderImg   src={c.file} style={CARD_STYLE} />
+      }
     </div>
   )
 }
 
-// ── Section — infinite drag-scroll carousel ───────────────────
 export function CasesSlider() {
   const trackRef = useInfiniteSlider(0.038)
   const { assets: dbAssets, loaded } = useMediaAssets('creativos_publicidad')
-  const sectionRef = useRef<HTMLElement>(null)
 
-  // Activar videos solo cuando la sección entra al viewport
-  useEffect(() => {
-    const section = sectionRef.current
-    if (!section) return
-    const io = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        section.querySelectorAll('video[preload="metadata"]').forEach(v => {
-          const vid = v as HTMLVideoElement
-          vid.load()
-          vid.play().catch(() => {})
-        })
-        io.disconnect()
-      }
-    }, { rootMargin: '200px 0px 0px 0px' })
-    io.observe(section)
-    return () => io.disconnect()
-  }, [])
-
-  // Si hay activos en DB, usarlos; si no, caer a los locales
   const baseItems: Creative[] = loaded && dbAssets.length > 0
-    ? dbAssets.map(a => ({ id: a.id, file: a.url, type: a.type === 'video' ? 'video' : 'image' }))
+    ? dbAssets
+        .filter(a => a.url && a.url.trim() !== '')   // filtrar URLs vacías/nulas
+        .map(a => ({ id: a.id, file: a.url, type: a.type as 'image' | 'video' }))
     : CREATIVES
-  // Triple el array para el loop infinito
   const items = [...baseItems, ...baseItems, ...baseItems]
 
   return (
-    <section ref={sectionRef} id="casos" style={{ padding: '72px 0' }}>
+    <section id="casos" style={{ padding: '72px 0' }}>
       <div style={{ width: '100%', maxWidth: 1200, margin: '0 auto', padding: '0 20px' }}>
         <div className="reveal" style={{ textAlign: 'center', marginBottom: 40 }}>
           <span className="eyebrow">Creativos · Publicidad</span>
@@ -111,30 +70,16 @@ export function CasesSlider() {
         </div>
       </div>
 
-      {/* Full-width slider with edge fade */}
       <div className="reveal" style={{
         width: '100%',
         WebkitMaskImage: 'linear-gradient(90deg, transparent 0%, #000 6%, #000 94%, transparent 100%)',
-        maskImage: 'linear-gradient(90deg, transparent 0%, #000 6%, #000 94%, transparent 100%)',
+        maskImage:        'linear-gradient(90deg, transparent 0%, #000 6%, #000 94%, transparent 100%)',
       }}>
-        <div
-          ref={trackRef}
-          data-slider-track=""
-          style={{
-            display: 'flex',
-            gap: 14,
-            padding: '6px 20px 10px',
-            cursor: 'grab',
-            willChange: 'transform',
-          }}
-        >
-          {items.map((c, i) => (
-            <AdCard key={`${c.id}-${i}`} c={c} />
-          ))}
+        <div ref={trackRef} style={{ display: 'flex', gap: 14, padding: '6px 20px 10px', cursor: 'grab', willChange: 'transform' }}>
+          {items.map((c, i) => <AdCard key={`${c.id}-${i}`} c={c} />)}
         </div>
       </div>
 
-      {/* Hint */}
       <div style={{ marginTop: 20, textAlign: 'center' }}>
         <span style={{ fontSize: 11.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--fg-4)', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>
           ← Desliza para ver más →

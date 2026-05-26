@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-// ── Shimmer skeleton ─────────────────────────────────────────
+// ── Shimmer skeleton (compartido) ────────────────────────────
 const shimmerStyle: React.CSSProperties = {
   position: 'absolute', inset: 0, zIndex: 1,
   background: 'linear-gradient(135deg, #2c2c2c 0%, #1e1e1e 50%, #2c2c2c 100%)',
@@ -8,18 +8,21 @@ const shimmerStyle: React.CSSProperties = {
   animation: 'slider-shimmer 1.6s ease infinite',
 }
 
+// Detecta si una URL es GIF — siempre se renderiza como <img>
+const isGif = (url: string) => url.toLowerCase().includes('.gif')
+
 /**
  * SliderVideo
  * ─────────────────────────────────────────────────────────────
- * Fixes aplicados:
- * • src lazy: se asigna solo al acercarse al viewport.
- * • autoPlay + muted + playsInline + webkit-playsinline (via JS).
- * • play() explícito en onCanPlay + onLoadedMetadata (no depender
- *   solo del atributo autoPlay que iOS ignora al asignar src por JS).
- * • disablePictureInPicture + controlsList → sin botones nativos.
- * • pointer-events: none en el <video> → iOS no muestra controles.
- * • Video solo visible (opacity:1) cuando realmente está PLAYING.
- * • onPause solo oculta si src está activo (evita flash en loop).
+ * Flujo de carga garantizado:
+ *  1. IO detecta el elemento cerca del viewport → setActive(true)
+ *  2. React re-renderiza → src={url} se asigna al <video>
+ *  3. useEffect [active] → vid.load() — CRÍTICO: sin esto, preload="none"
+ *     hace que el browser NO empiece a cargar aunque tenga el src.
+ *  4. onLoadedMetadata / onCanPlay → forcePlay() → vid.play()
+ *  5. onPlay → setPlaying(true) → video visible (fade-in)
+ *
+ * Si la URL es un GIF, delega a SliderImg automáticamente.
  */
 export function SliderVideo({
   src,
@@ -28,49 +31,69 @@ export function SliderVideo({
   src: string
   style?: React.CSSProperties
 }) {
+  // GIFs deben renderizarse como <img>, no <video>
+  if (isGif(src)) return <SliderImg src={src} style={style} />
+
+  return <_SliderVideo src={src} style={style} />
+}
+
+function _SliderVideo({
+  src,
+  style,
+}: {
+  src: string
+  style?: React.CSSProperties
+}) {
   const ref               = useRef<HTMLVideoElement>(null)
   const [error,   setError]   = useState(false)
-  const [playing, setPlaying] = useState(false) // visible solo cuando reproduce
-  const [active,  setActive]  = useState(false) // lazy: src activado
+  const [playing, setPlaying] = useState(false)
+  const [active,  setActive]  = useState(false)
 
-  // ── Helpers ─────────────────────────────────────────────────
-  const forcePlay = () => {
+  // ── PASO 3: cuando el src se activa, forzar carga inmediata ─
+  // Sin esto, preload="none" hace que el browser espere indefinidamente
+  // aunque tenga el src asignado. vid.load() arranca la descarga.
+  useEffect(() => {
     const vid = ref.current
-    if (!vid) return
-    // Atributos imperativos para iOS Safari
-    vid.muted = true
-    vid.setAttribute('playsinline', '')
-    vid.setAttribute('webkit-playsinline', '')
-    vid.play().catch(() => {})
-  }
+    if (!active || !vid) return
+    vid.preload = 'metadata' // promover de "none" a "metadata" una vez activo
+    vid.load()               // ← la llamada crítica que faltaba
+  }, [active])
 
-  // ── IO: lazy src + play/pause por visibilidad ──────────────
+  // ── PASO 1+4: IO para lazy-src + play/pause por visibilidad ─
   useEffect(() => {
     const vid = ref.current
     if (!vid || !src) return
 
+    // Garantizar atributos webkit desde el inicio
+    vid.setAttribute('playsinline', '')
+    vid.setAttribute('webkit-playsinline', '')
+
+    const forcePlay = () => {
+      vid.muted = true
+      vid.setAttribute('playsinline', '')
+      vid.setAttribute('webkit-playsinline', '')
+      vid.play().catch(() => {})
+    }
+
     const io = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setActive(true)                   // activa src (1 sola vez)
-          if (vid.readyState >= 2) forcePlay() // si ya tiene datos, reproducir
+          setActive(true)                      // activa src + dispara useEffect [active]
+          if (vid.readyState >= 2) forcePlay() // si ya tiene datos, reproducir ya
         } else {
           vid.pause()
         }
       },
       {
         threshold: 0.01,
+        // 400px vertical: anticipa scroll a la sección
+        // 1200px horizontal: precarga ítems adyacentes del slider
         rootMargin: '400px 1200px 400px 1200px',
       }
     )
 
-    // Atributos webkit al montar
-    vid.setAttribute('playsinline', '')
-    vid.setAttribute('webkit-playsinline', '')
-
     io.observe(vid)
     return () => io.disconnect()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src])
 
   if (!src || error) {
@@ -79,7 +102,7 @@ export function SliderVideo({
 
   return (
     <div style={{ position: 'relative', ...style, background: '#181818', overflow: 'hidden' }}>
-      {/* Shimmer mientras el video no ha arrancado */}
+      {/* Shimmer mientras el video no ha arrancado todavía */}
       {!playing && <div style={shimmerStyle} />}
 
       <video
@@ -89,28 +112,42 @@ export function SliderVideo({
         loop
         playsInline
         autoPlay
-        preload="none"
-        // iOS Safari: oculta PiP, fullscreen y controles nativos
+        preload="none"     // luego se promueve a "metadata" en useEffect [active]
         disablePictureInPicture
         controlsList="nodownload nofullscreen noremoteplayback"
         data-slider-video=""
-        onLoadedMetadata={forcePlay}   // primer evento al tener metadatos
-        onCanPlay={forcePlay}           // cuando tiene suficientes datos
-        onPlay={() => setPlaying(true)} // video realmente reproduciendo → mostrar
+        onLoadedMetadata={() => {
+          // Cuando hay metadatos, intentar play
+          const vid = ref.current
+          if (!vid) return
+          vid.muted = true
+          vid.play().catch(() => {})
+        }}
+        onCanPlay={() => {
+          // Cuando tiene datos suficientes, play garantizado
+          const vid = ref.current
+          if (!vid) return
+          vid.muted = true
+          vid.play().catch(() => {})
+        }}
+        onPlay={() => setPlaying(true)}   // confirma reproducción → mostrar
+        onStalled={() => {
+          // Si se traba (red lenta), reintentar load + play
+          const vid = ref.current
+          if (!vid) return
+          vid.load()
+          vid.play().catch(() => {})
+        }}
         onError={() => setError(true)}
         style={{
-          // Llenar el contenedor absolutamente
           position: 'absolute', inset: 0,
           width: '100%', height: '100%',
           objectFit: 'cover',
           objectPosition: 'top center',
           display: 'block',
-          // Visibilidad: oculto hasta que play() confirme reproducción
           opacity: playing ? 1 : 0,
           transition: 'opacity .4s ease',
-          // Bloquear interacción: evita que iOS muestre controles al tocar
-          pointerEvents: 'none',
-          // Sin fondo negro transparente
+          pointerEvents: 'none',        // evita que iOS muestre controles al tocar
           background: 'transparent',
         }}
       />
@@ -121,7 +158,9 @@ export function SliderVideo({
 /**
  * SliderImg
  * ─────────────────────────────────────────────────────────────
- * src lazy vía IO, shimmer + fade-in al cargar.
+ * Maneja imágenes Y GIFs (ambos se cargan como <img>).
+ * GIFs animan automáticamente en todos los navegadores.
+ * src lazy: se asigna solo al acercarse al viewport.
  */
 export function SliderImg({
   src,
@@ -143,7 +182,7 @@ export function SliderImg({
       ([entry]) => {
         if (entry.isIntersecting) {
           setActive(true)
-          io.disconnect()
+          io.disconnect() // imagen: cargar una sola vez
         }
       },
       {
