@@ -82,45 +82,64 @@
 .t-exit  { animation: t-exit  0.30s cubic-bezier(.4,0,.6,1)  forwards; }
 .t-enter { animation: t-enter 0.34s cubic-bezier(.16,1,.3,1) forwards; }
 
-/* ── TrustStrip marquee ────────────────────────────────────────────────── */
-@keyframes marquee-logos {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
+/* ── TrustStrip — grid estático de logos ─────────────────────────────── */
+.trust-section {
+  padding: 32px 24px 48px;
 }
 
-/* Track: flex en línea, animado */
-.trust-track {
-  display: flex;
-  width: max-content;
-  animation: marquee-logos 30s linear infinite;
+.trust-label {
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  font-weight: 600;
+  font-family: var(--font-body);
+  margin: 0 0 28px;
 }
 
-/* Un set completo de logos */
-.trust-set {
+/* Grid: 3 columnas en mobile, 5 en desktop */
+.trust-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px 20px;
+  align-items: center;
+  justify-items: center;
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+@media (min-width: 640px) {
+  .trust-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 32px 24px;
+  }
+}
+
+.trust-cell {
   display: flex;
   align-items: center;
-  flex-shrink: 0;
-  gap: 48px;
-  padding: 6px 48px 6px 0; /* padding-right = gap → espacio uniforme en el loop */
+  justify-content: center;
+  width: 100%;
 }
 
-/* Cada logo */
-.trust-logo {
-  height: 30px;
+.trust-img {
+  height: 28px;
   width: auto;
-  max-width: 120px;
+  max-width: 110px;
   object-fit: contain;
-  flex-shrink: 0;
   display: block;
   filter: brightness(0) invert(1);
-  opacity: 0.5;
+  opacity: 0.45;
   user-select: none;
   pointer-events: none;
 }
 
-/* Pausa si el usuario prefiere menos movimiento */
-@media (prefers-reduced-motion: reduce) {
-  .trust-track { animation: none; }
+@media (min-width: 640px) {
+  .trust-img {
+    height: 32px;
+    max-width: 130px;
+  }
 }
 
 @keyframes slider-shimmer {

@@ -1,9 +1,5 @@
-// TrustStrip — marquee infinito de logos
-// Implementación mínima y confiable para Safari iOS / Chrome / Firefox
-//
-// Principio: dos copias idénticas de los logos en flex.
-// La animación mueve el track -50% (= exactamente una copia).
-// Sin mask-image, sin will-change, sin GPU tricks — solo CSS puro.
+// TrustStrip — grid estático de logos de clientes
+// Sin animación, sin carrusel, sin riesgo de bugs en Safari/iOS.
 
 const LOGOS = [
   { src: '/logos/1.png', alt: 'Cliente 1' },
@@ -19,43 +15,14 @@ const LOGOS = [
 
 export function TrustStrip() {
   return (
-    <section style={{ padding: '28px 0 40px' }}>
-
-      <p style={{
-        textAlign: 'center',
-        fontSize: 11,
-        letterSpacing: '0.18em',
-        textTransform: 'uppercase',
-        color: 'var(--fg-3)',
-        fontWeight: 600,
-        marginBottom: 22,
-        fontFamily: 'var(--font-body)',
-        margin: '0 0 22px',
-      }}>
-        Marcas con las que he trabajado
-      </p>
-
-      {/* Contenedor: solo overflow hidden */}
-      <div style={{ overflow: 'hidden', width: '100%' }}>
-
-        {/* Track: flex con dos copias — animado en CSS global */}
-        <div className="trust-track">
-
-          {/* Copia 1 */}
-          <div className="trust-set">
-            {LOGOS.map((b, i) => (
-              <img key={i} src={b.src} alt={b.alt} className="trust-logo" />
-            ))}
+    <section className="trust-section">
+      <p className="trust-label">Marcas con las que he trabajado</p>
+      <div className="trust-grid">
+        {LOGOS.map((b, i) => (
+          <div key={i} className="trust-cell">
+            <img src={b.src} alt={b.alt} className="trust-img" />
           </div>
-
-          {/* Copia 2 — idéntica, aria-hidden para accesibilidad */}
-          <div className="trust-set" aria-hidden="true">
-            {LOGOS.map((b, i) => (
-              <img key={i} src={b.src} alt="" className="trust-logo" />
-            ))}
-          </div>
-
-        </div>
+        ))}
       </div>
     </section>
   )
