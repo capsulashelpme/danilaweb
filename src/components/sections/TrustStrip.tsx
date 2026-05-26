@@ -14,8 +14,9 @@ const LOGOS = [
   { src: '/logos/9.png', alt: 'Cliente 9' },
 ]
 
-// Triplicar para que el loop sea suave en pantallas anchas
-const track = [...LOGOS, ...LOGOS, ...LOGOS]
+// Duplicar (2×) — keyframe va de 0% a -50% (math exacta, sin decimales)
+// No triplicar: con 2× y -50% el loop boundary es exactamente la mitad → sin glitch de punto flotante
+const track = [...LOGOS, ...LOGOS]
 
 export function TrustStrip() {
   return (
@@ -35,13 +36,28 @@ export function TrustStrip() {
         </p>
       </div>
 
-      {/* Marquee */}
+      {/*
+        Marquee — arquitectura GPU estable:
+        ┌─ wrapper: overflow:hidden + mask-image
+        │   La máscara vive aquí, en el mismo stacking context que el track.
+        │   NO se crea una capa GPU separada para la máscara.
+        └─ track: will-change:transform + translateZ(0) + backface-visibility:hidden
+            Fuerza una única capa de composición estable.
+            El browser NUNCA la descarta ni la recrea durante la animación.
+      */}
       <div style={{
         width: '100%',
         overflow: 'hidden',
         position: 'relative',
-        WebkitMaskImage: 'linear-gradient(90deg, transparent 0, #000 10%, #000 90%, transparent 100%)',
-        maskImage:        'linear-gradient(90deg, transparent 0, #000 10%, #000 90%, transparent 100%)',
+        // Mask en el wrapper — NO en el mismo elemento que anima el hijo
+        // Separar mask-container del animated-child evita el bug de Safari
+        // donde -webkit-mask-image + transform-child = capas desordenadas
+        WebkitMaskImage: 'linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%)',
+        maskImage:       'linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%)',
+        // Forzar un stacking context propio para que la máscara y el track
+        // queden en la misma capa GPU (evita el dropout periódico en Safari/iOS)
+        isolation: 'isolate',
+        transform: 'translateZ(0)',
       }}>
         <div style={{
           display: 'flex',
@@ -49,8 +65,13 @@ export function TrustStrip() {
           alignItems: 'center',
           width: 'max-content',
           padding: '4px 28px',
-          // La animación está definida en index.css — nunca se reinicia por re-renders
-          animation: 'marquee-brands 42s linear infinite',
+          // GPU compositing explícito — el browser nunca deprioritiza esta capa
+          willChange: 'transform',
+          transform: 'translateZ(0)',
+          backfaceVisibility: 'hidden',
+          WebkitBackfaceVisibility: 'hidden',
+          // marquee-brands-2 va de 0 a -50% (2× items → loop exacto)
+          animation: 'marquee-brands-2 32s linear infinite',
         }}>
           {track.map((b, i) => (
             <span
@@ -69,6 +90,8 @@ export function TrustStrip() {
                   display: 'block',
                   userSelect: 'none',
                   pointerEvents: 'none',
+                  // Prevenir layout shifts — imagen fija en altura
+                  flexShrink: 0,
                 }}
               />
             </span>
