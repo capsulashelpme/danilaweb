@@ -82,13 +82,7 @@
 .t-exit  { animation: t-exit  0.30s cubic-bezier(.4,0,.6,1)  forwards; }
 .t-enter { animation: t-enter 0.34s cubic-bezier(.16,1,.3,1) forwards; }
 
-/* ── TrustStrip — marquee premium ────────────────────────────────────── */
-
-/* Keyframe: de 0 a -50% (track = 2 grupos → -50% = exactamente un grupo) */
-@keyframes brands-scroll {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
-}
+/* ── TrustStrip — marquee RAF ─────────────────────────────────────────── */
 
 .brands-section {
   padding: 32px 0 48px;
@@ -105,51 +99,29 @@
   margin: 0 0 28px;
 }
 
-/* Wrapper: recorta el overflow y añade fade en los bordes */
+/* Wrapper: recorta overflow, contiene los fades absolutos */
 .brands-marquee {
   overflow: hidden;
   position: relative;
 }
 
-/* Fade izquierdo — overlay sobre el track, no interfiere con la animación */
-.brands-marquee::before,
-.brands-marquee::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 80px;
-  z-index: 2;
-  pointer-events: none;
-}
-.brands-marquee::before {
-  left: 0;
-  background: linear-gradient(to right, #0C0C0C 0%, transparent 100%);
-}
-.brands-marquee::after {
-  right: 0;
-  background: linear-gradient(to left, #0C0C0C 0%, transparent 100%);
-}
-
-/* Track: flex con dos grupos, animado */
+/* Track: flex, movido por JS via transform translateX(-Xpx) */
 .brands-track {
   display: flex;
   width: max-content;
-  animation: brands-scroll 9s linear infinite;
+  will-change: transform;
 }
 
-/* Un grupo = todos los logos, con gap uniforme.
-   padding-right = gap → espacio tras el último logo = espacio entre logos
-   → el punto de loop es visualmente idéntico a cualquier otro punto. */
+/* Un grupo completo de logos */
 .brands-group {
   display: flex;
   align-items: center;
   flex-shrink: 0;
   gap: 56px;
-  padding: 8px 56px 8px 0;
+  padding: 8px 56px 8px 0; /* padding-right = gap → espacio uniforme en el loop */
 }
 
-/* Cada logo dentro del grupo */
+/* Cada logo */
 .brand-item {
   display: flex;
   align-items: center;
@@ -168,10 +140,18 @@
   pointer-events: none;
 }
 
-/* Pausa para usuarios que prefieren menos movimiento */
-@media (prefers-reduced-motion: reduce) {
-  .brands-track { animation-play-state: paused; }
+/* Fades de borde — divs absolutos separados del track (sin interferencia GPU) */
+.brands-fade-left,
+.brands-fade-right {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 80px;
+  pointer-events: none;
+  z-index: 2;
 }
+.brands-fade-left  { left:  0; background: linear-gradient(to right, #0C0C0C, transparent); }
+.brands-fade-right { right: 0; background: linear-gradient(to left,  #0C0C0C, transparent); }
 
 @keyframes slider-shimmer {
   0%   { background-position: 200% 0 }
