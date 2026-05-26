@@ -82,6 +82,12 @@
 .t-exit  { animation: t-exit  0.30s cubic-bezier(.4,0,.6,1)  forwards; }
 .t-enter { animation: t-enter 0.34s cubic-bezier(.16,1,.3,1) forwards; }
 
+/* ── Marquee de logos (TrustStrip) ── */
+@keyframes marquee-brands {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-33.333%, 0, 0); }
+}
+
 @keyframes slider-shimmer {
   0%   { background-position: 200% 0 }
   100% { background-position: -200% 0 }
