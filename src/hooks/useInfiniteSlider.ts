@@ -2,8 +2,7 @@ import { useEffect, useRef } from 'react'
 
 /**
  * Hook para un slider de loop infinito sin bugs de salto.
- * El RAF se pausa automáticamente cuando el slider sale del viewport
- * para no desperdiciar CPU/GPU en secciones invisibles.
+ * Requisito: el track debe tener exactamente 3 copias del contenido.
  */
 export function useInfiniteSlider(speed = 0.036) {
   const trackRef = useRef<HTMLDivElement>(null)
@@ -16,24 +15,30 @@ export function useInfiniteSlider(speed = 0.036) {
 
     const wrap = () => {
       const l = L()
+      if (l <= 0) return
       if (el.scrollLeft >= 2 * l) el.scrollLeft -= l
       else if (el.scrollLeft < l)  el.scrollLeft += l
     }
 
-    el.scrollLeft = L()
+    // Inicializar posición después de que el layout esté listo
+    const init = () => {
+      const l = L()
+      if (l > 0) el.scrollLeft = l
+    }
+    // Doble rAF para asegurar que el browser hizo layout antes de leer scrollWidth
+    requestAnimationFrame(() => requestAnimationFrame(init))
 
     let raf: number
-    let lastT = performance.now()
-    let paused    = false
-    let offscreen = false   // pausa RAF cuando el slider no está visible
-    let dragging  = false
+    let lastT   = performance.now()
+    let paused  = false
+    let dragging = false
     let prevPointerX = 0
     let prevTouchX   = 0
 
     const tick = (t: number) => {
-      const dt = Math.min(t - lastT, 50)   // cap a 50ms para evitar saltos tras tab-switch
+      const dt = Math.min(t - lastT, 50)
       lastT = t
-      if (!paused && !offscreen && el.scrollWidth > el.clientWidth) {
+      if (!paused && !document.hidden && el.scrollWidth > el.clientWidth) {
         el.scrollLeft += dt * speed
         wrap()
       }
@@ -41,12 +46,9 @@ export function useInfiniteSlider(speed = 0.036) {
     }
     raf = requestAnimationFrame(tick)
 
-    // Pausar RAF cuando el slider no es visible (ahorra CPU en secciones fuera de pantalla)
-    const io = new IntersectionObserver(
-      ([entry]) => { offscreen = !entry.isIntersecting },
-      { rootMargin: '200px 0px 200px 0px' }
-    )
-    io.observe(el)
+    // Pausar solo cuando el tab está oculto (no cuando el slider está fuera del viewport)
+    const onVisibility = () => { if (!document.hidden) lastT = performance.now() }
+    document.addEventListener('visibilitychange', onVisibility)
 
     // ── Pointer ──────────────────────────────────────────────────
     const onDown = (e: PointerEvent) => {
@@ -91,7 +93,7 @@ export function useInfiniteSlider(speed = 0.036) {
 
     return () => {
       cancelAnimationFrame(raf)
-      io.disconnect()
+      document.removeEventListener('visibilitychange', onVisibility)
       el.removeEventListener('pointerdown',   onDown)
       el.removeEventListener('pointermove',   onMove)
       el.removeEventListener('pointerup',     onUp)

@@ -58,7 +58,7 @@ function WebCard({ d }: { d: WebDemo }) {
       {/* Screenshot / video */}
       <div style={{ flex: 1, overflow: 'hidden' }}>
         {(d.file.includes('.mp4') || d.file.includes('.mov') || d.file.includes('.webm'))
-          ? <video src={d.file} autoPlay loop muted playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }} />
+          ? <video src={d.file} autoPlay loop muted playsInline preload="none" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }} />
           : <img src={d.file} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }} />
         }
       </div>

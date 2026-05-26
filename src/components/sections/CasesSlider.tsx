@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { useInfiniteSlider } from '@/hooks/useInfiniteSlider'
 import { useMediaAssets } from '@/components/admin/MediaManager'
 
@@ -46,7 +47,7 @@ function AdCard({ c }: { c: Creative }) {
           loop
           muted
           playsInline
-          preload="metadata"
+          preload="none"
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />
       ) : (
@@ -66,6 +67,25 @@ function AdCard({ c }: { c: Creative }) {
 export function CasesSlider() {
   const trackRef = useInfiniteSlider(0.038)
   const { assets: dbAssets, loaded } = useMediaAssets('creativos_publicidad')
+  const sectionRef = useRef<HTMLElement>(null)
+
+  // Activar videos solo cuando la sección entra al viewport
+  useEffect(() => {
+    const section = sectionRef.current
+    if (!section) return
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        section.querySelectorAll('video[preload="none"]').forEach(v => {
+          const vid = v as HTMLVideoElement
+          vid.load()
+          vid.play().catch(() => {})
+        })
+        io.disconnect()
+      }
+    }, { rootMargin: '200px 0px 0px 0px' })
+    io.observe(section)
+    return () => io.disconnect()
+  }, [])
 
   // Si hay activos en DB, usarlos; si no, caer a los locales
   const baseItems: Creative[] = loaded && dbAssets.length > 0
@@ -75,7 +95,7 @@ export function CasesSlider() {
   const items = [...baseItems, ...baseItems, ...baseItems]
 
   return (
-    <section id="casos" style={{ padding: '72px 0' }}>
+    <section ref={sectionRef} id="casos" style={{ padding: '72px 0' }}>
       <div style={{ width: '100%', maxWidth: 1200, margin: '0 auto', padding: '0 20px' }}>
         <div className="reveal" style={{ textAlign: 'center', marginBottom: 40 }}>
           <span className="eyebrow">Creativos · Publicidad</span>
