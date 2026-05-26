@@ -47,7 +47,7 @@ function AdCard({ c }: { c: Creative }) {
           loop
           muted
           playsInline
-          preload="none"
+          preload="metadata"
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />
       ) : (
@@ -75,7 +75,7 @@ export function CasesSlider() {
     if (!section) return
     const io = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
-        section.querySelectorAll('video[preload="none"]').forEach(v => {
+        section.querySelectorAll('video[preload="metadata"]').forEach(v => {
           const vid = v as HTMLVideoElement
           vid.load()
           vid.play().catch(() => {})

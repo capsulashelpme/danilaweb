@@ -127,7 +127,7 @@ export function VideoSlider() {
     if (!section) return
     const io = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
-        section.querySelectorAll('video[preload="none"]').forEach(v => {
+        section.querySelectorAll('video[preload="metadata"]').forEach(v => {
           const vid = v as HTMLVideoElement
           vid.load()
           vid.play().catch(() => {})
@@ -188,8 +188,8 @@ export function VideoSlider() {
                     border: '1px solid rgba(255,255,255,0.08)', userSelect: 'none', pointerEvents: 'none',
                   }}>
                     {a.type === 'video'
-                      ? <video src={a.url} autoPlay loop muted playsInline preload="none" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }} />
-                      : <img   src={a.url} alt="" loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }} />
+                      ? <video src={a.url} autoPlay loop muted playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }} />
+                      : <img   src={a.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }} />
                     }
                     {/* Bottom overlay: views */}
                     {views > 0 && (

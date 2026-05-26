@@ -1,12 +1,9 @@
 import { useEffect, useRef } from 'react'
 
 /**
- * Slider infinito basado en CSS transform (no scrollLeft).
- * Funciona correctamente en iOS Safari, donde scrollLeft programático
- * es bloqueado por el scroll nativo con momentum.
- *
- * El contenedor debe ser overflow:hidden.
- * El track interno tiene 3 copias del contenido y se mueve con translateX.
+ * Slider infinito con transform (compatible iOS Safari).
+ * Touch: detecta dirección del swipe — horizontal arrastra el slider,
+ * vertical deja pasar el scroll de la página.
  */
 export function useInfiniteSlider(speed = 0.036) {
   const trackRef = useRef<HTMLDivElement>(null)
@@ -15,47 +12,39 @@ export function useInfiniteSlider(speed = 0.036) {
     const track = trackRef.current
     if (!track) return
 
-    // El padre del track debe ser overflow:hidden para recortar el contenido
     const container = track.parentElement
-    if (container) {
-      container.style.overflow = 'hidden'
-    }
+    if (container) container.style.overflow = 'hidden'
 
-    let x        = 0          // posición actual en px (negativo = mover a la izquierda)
+    let x      = 0
     let raf: number
-    let lastT    = performance.now()
-    let paused   = false
-    let dragging = false
-    let prevX    = 0          // última posición del puntero/dedo
+    let lastT  = performance.now()
+    let paused = false
 
-    // Un tercio del ancho total = longitud de una copia
+    // Touch state
+    let touchStartX = 0
+    let touchStartY = 0
+    let touchDir: 'h' | 'v' | null = null  // dirección detectada del swipe
+
     const oneThird = () => track.scrollWidth / 3
 
-    // Aplicar transform y hacer wrap invisible
     const move = (newX: number) => {
       const L = oneThird()
       if (L <= 0) return
-      // Mantener x en el rango [-2L, -L] para loop invisible
       if (newX <= -2 * L) newX += L
       if (newX > -L)      newX -= L
       x = newX
       track.style.transform = `translateX(${x}px)`
     }
 
-    // Iniciar en la copia central
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const L = oneThird()
-        if (L > 0) { x = -L; track.style.transform = `translateX(${x}px)` }
-      })
-    })
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const L = oneThird()
+      if (L > 0) { x = -L; track.style.transform = `translateX(${x}px)` }
+    }))
 
     const tick = (t: number) => {
       const dt = Math.min(t - lastT, 50)
       lastT = t
-      if (!paused && !document.hidden) {
-        move(x - dt * speed)
-      }
+      if (!paused && !document.hidden) move(x - dt * speed)
       raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
@@ -63,35 +52,48 @@ export function useInfiniteSlider(speed = 0.036) {
     const onVisibility = () => { if (!document.hidden) lastT = performance.now() }
     document.addEventListener('visibilitychange', onVisibility)
 
-    // ── Pointer (mouse / stylus) ──────────────────────────────────
+    // ── Pointer (mouse/desktop) ───────────────────────────────────
+    let dragging = false
+    let prevPX = 0
     const onPointerDown = (e: PointerEvent) => {
-      paused = true; dragging = true
-      prevX = e.clientX
+      paused = true; dragging = true; prevPX = e.clientX
+      track.setPointerCapture(e.pointerId)
       track.style.cursor = 'grabbing'
-      e.preventDefault()
     }
     const onPointerMove = (e: PointerEvent) => {
       if (!dragging) return
-      move(x + (e.clientX - prevX))
-      prevX = e.clientX
+      move(x + (e.clientX - prevPX)); prevPX = e.clientX
     }
     const onPointerUp = () => {
-      dragging = false
-      track.style.cursor = 'grab'
+      dragging = false; track.style.cursor = 'grab'
       setTimeout(() => { paused = false; lastT = performance.now() }, 600)
     }
 
     // ── Touch (iOS Safari) ───────────────────────────────────────
     const onTouchStart = (e: TouchEvent) => {
+      touchStartX = e.touches[0].clientX
+      touchStartY = e.touches[0].clientY
+      touchDir = null
       paused = true
-      prevX = e.touches[0].clientX
     }
     const onTouchMove = (e: TouchEvent) => {
-      move(x + (e.touches[0].clientX - prevX))
-      prevX = e.touches[0].clientX
-      e.preventDefault()   // evita que iOS scroll la página mientras arrastramos
+      const dx = e.touches[0].clientX - touchStartX
+      const dy = e.touches[0].clientY - touchStartY
+
+      // Detectar dirección en el primer movimiento significativo
+      if (!touchDir && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
+        touchDir = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v'
+      }
+
+      if (touchDir === 'h') {
+        e.preventDefault()   // bloquear scroll de página solo en swipe horizontal
+        move(x + (e.touches[0].clientX - touchStartX))
+        touchStartX = e.touches[0].clientX
+        touchStartY = e.touches[0].clientY
+      }
     }
     const onTouchEnd = () => {
+      touchDir = null
       setTimeout(() => { paused = false; lastT = performance.now() }, 600)
     }
 
@@ -101,7 +103,7 @@ export function useInfiniteSlider(speed = 0.036) {
     track.addEventListener('pointercancel', onPointerUp)
     track.addEventListener('touchstart',    onTouchStart, { passive: true })
     track.addEventListener('touchmove',     onTouchMove,  { passive: false })
-    track.addEventListener('touchend',      onTouchEnd)
+    track.addEventListener('touchend',      onTouchEnd,   { passive: true })
 
     return () => {
       cancelAnimationFrame(raf)
