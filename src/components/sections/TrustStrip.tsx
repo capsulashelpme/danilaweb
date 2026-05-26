@@ -1,20 +1,25 @@
-// TrustStrip — marquee infinito de logos de clientes
+// TrustStrip — marquee infinito de logos
 //
-// Arquitectura del loop seamless:
+// Safari iOS bug: -webkit-mask-image en un padre con hijos animados
+// crea capas GPU separadas que se desincronizan → logos desaparecen.
 //
-//  ┌──────────────────────────────────────────────────────────────┐
-//  │  .track  (display:flex, width:max-content, animado -50%)     │
-//  │  ┌─────────────────────────┐ ┌─────────────────────────┐    │
-//  │  │ .group (logos 1-9)      │ │ .group (logos 1-9)      │    │
-//  │  │  gap:G  padding-right:G │ │  gap:G  padding-right:G │    │
-//  │  └─────────────────────────┘ └─────────────────────────┘    │
-//  └──────────────────────────────────────────────────────────────┘
+// Solución: NO usar mask-image. En cambio, dos divs overlay absolutos
+// (izquierda y derecha) con gradiente del color de fondo hacen el
+// efecto de fade sin afectar la capa GPU de la animación.
 //
-//  padding-right:G en cada grupo → el espacio entre el último logo del
-//  grupo 1 y el primero del grupo 2 es exactamente G (igual al gap interno).
-//  La animación mueve exactamente el ancho de un grupo → loop sin saltos.
+// Estructura:
+//   <section>
+//     <div wrapper: position:relative, overflow:hidden>
+//       <div track: display:flex, animation marquee-logos>
+//         <LogoSet />   ← logos 1-9
+//         <LogoSet />   ← logos 1-9 (copia exacta)
+//       </div>
+//       <div fadeLeft />   ← overlay absoluto
+//       <div fadeRight />  ← overlay absoluto
+//     </div>
+//   </section>
 //
-//  NOTA: @keyframes marquee-logos está en index.css
+// @keyframes marquee-logos → index.css (translate -50% = un set exacto)
 
 const LOGOS = [
   { src: '/logos/1.png', alt: 'Cliente 1' },
@@ -28,87 +33,105 @@ const LOGOS = [
   { src: '/logos/9.png', alt: 'Cliente 9' },
 ]
 
-// Gap entre logos (en px). Debe coincidir con el padding-right de cada grupo
-// para que el espacio entre grupos === espacio dentro de un grupo.
-const GAP = 56
-
-const groupStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  flexShrink: 0,
-  gap: GAP,
-  // padding-right = GAP → espacio tras el último logo del grupo
-  // igual al espacio entre logos dentro del grupo → loop perfecto
-  paddingRight: GAP,
-}
-
-const imgStyle: React.CSSProperties = {
-  height: 36,
-  width: 'auto',
-  objectFit: 'contain',
-  filter: 'brightness(0) invert(1)',
-  opacity: 0.55,
-  display: 'block',
-  flexShrink: 0,
-  userSelect: 'none',
-  pointerEvents: 'none',
-}
-
-function LogoGroup() {
+// Un set completo de logos.
+// padding-right = gap → el espacio tras el último logo del set
+// coincide con el espacio entre logos dentro del set.
+// Así translateX(-50%) aterriza exactamente en el inicio del set 2
+// y el loop es visualmente perfecto.
+function LogoSet() {
   return (
-    <div style={groupStyle}>
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      flexShrink: 0,
+      gap: 64,
+      paddingRight: 64,   // debe ser igual al gap
+    }}>
       {LOGOS.map((b, i) => (
-        <img key={i} src={b.src} alt={b.alt} style={imgStyle} />
+        <img
+          key={i}
+          src={b.src}
+          alt={b.alt}
+          style={{
+            height: 32,
+            width: 'auto',
+            maxWidth: 140,
+            objectFit: 'contain',
+            flexShrink: 0,
+            display: 'block',
+            filter: 'brightness(0) invert(1)',
+            opacity: 0.5,
+            userSelect: 'none',
+            pointerEvents: 'none',
+          }}
+        />
       ))}
     </div>
   )
 }
 
 export function TrustStrip() {
-  return (
-    <section style={{ padding: '28px 0 40px', position: 'relative' }}>
-      {/* Título */}
-      <div style={{ width: '100%', maxWidth: 1400, margin: '0 auto', padding: '0 20px' }}>
-        <p style={{
-          textAlign: 'center',
-          fontSize: 11,
-          letterSpacing: '0.18em',
-          textTransform: 'uppercase',
-          color: 'var(--fg-3)',
-          fontWeight: 600,
-          marginBottom: 22,
-        }}>
-          Marcas con las que he trabajado
-        </p>
-      </div>
+  // Color de fondo de la página — debe coincidir con --bg-0
+  const bg = '#0C0C0C'
 
-      {/* Contenedor: overflow hidden + máscara de bordes */}
+  return (
+    <section style={{ padding: '28px 0 40px' }}>
+      {/* Título */}
+      <p style={{
+        textAlign: 'center',
+        fontSize: 11,
+        letterSpacing: '0.18em',
+        textTransform: 'uppercase',
+        color: 'var(--fg-3)',
+        fontWeight: 600,
+        marginBottom: 22,
+        fontFamily: 'var(--font-body)',
+      }}>
+        Marcas con las que he trabajado
+      </p>
+
+      {/* Wrapper: overflow hidden sin mask-image */}
       <div style={{
         width: '100%',
         overflow: 'hidden',
         position: 'relative',
-        WebkitMaskImage: 'linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%)',
-        maskImage:       'linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%)',
       }}>
-        {/*
-          Track: dos grupos idénticos lado a lado.
-          La animación mueve -50% del ancho total = exactamente un grupo.
-          GPU compositing explícito para que el browser nunca descarte la capa.
-        */}
+
+        {/* Track animado — capa GPU propia, sin interferencia de mask */}
         <div style={{
           display: 'flex',
           width: 'max-content',
-          padding: '4px 0',
-          // GPU compositing — capa estable, nunca se destruye durante la animación
+          padding: '6px 0',
           willChange: 'transform',
           transform: 'translateZ(0)',
           backfaceVisibility: 'hidden',
           WebkitBackfaceVisibility: 'hidden' as React.CSSProperties['backfaceVisibility'],
-          animation: 'marquee-logos 30s linear infinite',
+          animation: 'marquee-logos 28s linear infinite',
         }}>
-          <LogoGroup />
-          <LogoGroup />
+          <LogoSet />
+          <LogoSet />
         </div>
+
+        {/* Overlay izquierdo — gradiente encima del track, no afecta su capa GPU */}
+        <div style={{
+          position: 'absolute',
+          top: 0, left: 0, bottom: 0,
+          width: 120,
+          background: `linear-gradient(to right, ${bg} 0%, transparent 100%)`,
+          pointerEvents: 'none',
+          zIndex: 2,
+        }} />
+
+        {/* Overlay derecho */}
+        <div style={{
+          position: 'absolute',
+          top: 0, right: 0, bottom: 0,
+          width: 120,
+          background: `linear-gradient(to left, ${bg} 0%, transparent 100%)`,
+          pointerEvents: 'none',
+          zIndex: 2,
+        }} />
+
       </div>
     </section>
   )
