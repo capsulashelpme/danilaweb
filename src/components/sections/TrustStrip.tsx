@@ -1,5 +1,7 @@
-// TrustStrip — grid estático de logos de clientes
-// Sin animación, sin carrusel, sin riesgo de bugs en Safari/iOS.
+// TrustStrip — marquee horizontal premium
+// Estructura: dos grupos idénticos en un track animado.
+// translateX(-50%) = exactamente un grupo → loop invisible.
+// CSS classes en index.css — sin inline animation styles (más estable en Safari iOS).
 
 const LOGOS = [
   { src: '/logos/1.png', alt: 'Cliente 1' },
@@ -13,16 +15,29 @@ const LOGOS = [
   { src: '/logos/9.png', alt: 'Cliente 9' },
 ]
 
+function LogoGroup({ hidden }: { hidden?: boolean }) {
+  return (
+    <div className="brands-group" aria-hidden={hidden || undefined}>
+      {LOGOS.map((b, i) => (
+        <div key={i} className="brand-item">
+          <img src={b.src} alt={hidden ? '' : b.alt} className="brand-img" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export function TrustStrip() {
   return (
-    <section className="trust-section">
-      <p className="trust-label">Marcas con las que he trabajado</p>
-      <div className="trust-grid">
-        {LOGOS.map((b, i) => (
-          <div key={i} className="trust-cell">
-            <img src={b.src} alt={b.alt} className="trust-img" />
-          </div>
-        ))}
+    <section className="brands-section">
+      <p className="brands-title">Marcas con las que he trabajado</p>
+
+      {/* Wrapper: overflow hidden + fade en bordes via ::before/::after en CSS */}
+      <div className="brands-marquee">
+        <div className="brands-track">
+          <LogoGroup />
+          <LogoGroup hidden />
+        </div>
       </div>
     </section>
   )
