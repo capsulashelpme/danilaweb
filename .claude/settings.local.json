@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(gunzip -c webfetch-1779480656777-ptd0lm.bin)",
+      "Bash(cp webfetch-1779480656777-ptd0lm.bin design_extracted.tar)",
+      "Read(//private/tmp/**)",
+      "Bash(gunzip -c \"/Users/danielquintana/.claude/projects/-Users-danielquintana-Desktop-DOGMA-danilaweb/5d8ee1a5-a0d1-4b24-a416-b80c22785fbf/tool-results/webfetch-1779480656777-ptd0lm.bin\")",
+      "Bash(tar xf *)",
+      "Bash(npx tsc *)",
+      "Bash(npm install *)",
+      "Bash(supabase --version)",
+      "Bash(supabase functions *)",
+      "Bash(cat)",
+      "Read(//tmp/**)",
+      "Bash(npx supabase *)"
+    ]
+  }
+}
