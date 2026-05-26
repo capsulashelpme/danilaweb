@@ -126,10 +126,20 @@ export function VideoSlider() {
   const trackRef = useInfiniteSlider(0.032)
   const { assets: dbAssets, loaded } = useMediaAssets('contenido_organico')
 
-  const useDb = loaded && dbAssets.length > 0
-  const items = useDb
-    ? [...dbAssets, ...dbAssets, ...dbAssets]
-    : [...VIDEOS, ...VIDEOS, ...VIDEOS]
+  // Mientras la DB carga: mostrar skeletons en lugar de VideoCard oscuros
+  // para evitar el parpadeo entre fallback → contenido real.
+  const useDb       = loaded && dbAssets.length > 0
+  const useFallback = loaded && dbAssets.length === 0
+
+  const baseItems = useDb
+    ? dbAssets
+    : useFallback
+    ? VIDEOS
+    : null   // null = todavía cargando
+
+  const items = baseItems
+    ? [...baseItems, ...baseItems, ...baseItems]
+    : null
 
   return (
     <section id="contenido" style={{ padding: '72px 0' }}>
@@ -165,41 +175,53 @@ export function VideoSlider() {
             willChange: 'transform',
           }}
         >
-          {useDb
-            ? (items as typeof dbAssets).map((a, i: number) => {
-                const views = (a as MediaAsset & { views_count?: number }).views_count ?? 0
-                return (
-                  <div key={`${a.id}-${i}`} aria-hidden="true" style={{
-                    position: 'relative', width: 160, height: 284, flexShrink: 0,
-                    borderRadius: 16, overflow: 'hidden', background: '#0a0a0a',
-                    border: '1px solid rgba(255,255,255,0.08)', userSelect: 'none', pointerEvents: 'none',
+          {/* Mientras carga la DB: skeletons con shimmer */}
+          {!items && Array.from({ length: 18 }).map((_, i) => (
+            <div key={`sk-${i}`} aria-hidden="true" style={{
+              width: 160, height: 284, flexShrink: 0, borderRadius: 16,
+              overflow: 'hidden',
+              background: 'linear-gradient(135deg, #2c2c2c 0%, #1e1e1e 50%, #2c2c2c 100%)',
+              backgroundSize: '200% 100%',
+              animation: 'slider-shimmer 1.6s ease infinite',
+              border: '1px solid rgba(255,255,255,0.06)',
+            }} />
+          ))}
+
+          {/* Contenido DB */}
+          {useDb && (items as typeof dbAssets).map((a, i: number) => {
+            const views = (a as MediaAsset & { views_count?: number }).views_count ?? 0
+            return (
+              <div key={`${a.id}-${i}`} aria-hidden="true" style={{
+                position: 'relative', width: 160, height: 284, flexShrink: 0,
+                borderRadius: 16, overflow: 'hidden', background: '#181818',
+                border: '1px solid rgba(255,255,255,0.08)', userSelect: 'none', pointerEvents: 'none',
+              }}>
+                {a.type === 'video'
+                  ? <SliderVideo src={a.url} style={CARD_STYLE} />
+                  : <SliderImg   src={a.url} style={CARD_STYLE} />
+                }
+                {views > 0 && (
+                  <div style={{
+                    position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 3,
+                    padding: '32px 12px 12px',
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)',
+                    display: 'flex', alignItems: 'flex-end', gap: 5,
                   }}>
-                    {a.type === 'video'
-                      ? <SliderVideo src={a.url} style={CARD_STYLE} />
-                      : <SliderImg   src={a.url} style={CARD_STYLE} />
-                    }
-                    {/* Bottom overlay: views */}
-                    {views > 0 && (
-                      <div style={{
-                        position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 2,
-                        padding: '32px 12px 12px',
-                        background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)',
-                        display: 'flex', alignItems: 'flex-end', gap: 5,
-                      }}>
-                        <PlayIcon />
-                        <span style={{
-                          fontFamily: 'var(--font-display)', fontWeight: 700,
-                          fontSize: 13, color: '#fff', letterSpacing: '-0.01em',
-                        }}>{formatViews(views)}</span>
-                      </div>
-                    )}
+                    <PlayIcon />
+                    <span style={{
+                      fontFamily: 'var(--font-display)', fontWeight: 700,
+                      fontSize: 13, color: '#fff', letterSpacing: '-0.01em',
+                    }}>{formatViews(views)}</span>
                   </div>
-                )
-              })
-            : (items as typeof VIDEOS).map((v, i) => (
-                <VideoCard key={`${v.id}-${i}`} v={v} />
-              ))
-          }
+                )}
+              </div>
+            )
+          })}
+
+          {/* Fallback sin DB */}
+          {useFallback && (items as typeof VIDEOS).map((v, i) => (
+            <VideoCard key={`${v.id}-${i}`} v={v} />
+          ))}
         </div>
       </div>
 

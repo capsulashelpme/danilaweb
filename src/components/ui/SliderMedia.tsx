@@ -1,16 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
 
+// ── Shimmer skeleton ─────────────────────────────────────────
+const shimmerStyle: React.CSSProperties = {
+  position: 'absolute', inset: 0, zIndex: 1,
+  background: 'linear-gradient(135deg, #2c2c2c 0%, #1e1e1e 50%, #2c2c2c 100%)',
+  backgroundSize: '200% 100%',
+  animation: 'slider-shimmer 1.6s ease infinite',
+}
+
 /**
  * SliderVideo
  * ─────────────────────────────────────────────────────────────
- * • src NO se asigna hasta que el elemento entra en viewport
- *   (+ 600 px horizontales de margen) → 0 requests para items
- *   fuera de pantalla.
- * • autoPlay + muted + playsInline → iOS Safari permite autoplay.
- * • IntersectionObserver: play al entrar, pause al salir.
- *   Al re-entrar (loop del slider) retoma reproducción.
- * • preload="none" para no cargar datos antes de ser visible.
- * • Shimmer animado mientras carga, fade-in cuando tiene datos.
+ * Fixes aplicados:
+ * • src lazy: se asigna solo al acercarse al viewport.
+ * • autoPlay + muted + playsInline + webkit-playsinline (via JS).
+ * • play() explícito en onCanPlay + onLoadedMetadata (no depender
+ *   solo del atributo autoPlay que iOS ignora al asignar src por JS).
+ * • disablePictureInPicture + controlsList → sin botones nativos.
+ * • pointer-events: none en el <video> → iOS no muestra controles.
+ * • Video solo visible (opacity:1) cuando realmente está PLAYING.
+ * • onPause solo oculta si src está activo (evita flash en loop).
  */
 export function SliderVideo({
   src,
@@ -19,12 +28,23 @@ export function SliderVideo({
   src: string
   style?: React.CSSProperties
 }) {
-  const ref        = useRef<HTMLVideoElement>(null)
-  const [ready,  setReady]  = useState(false)
-  const [error,  setError]  = useState(false)
-  const [active, setActive] = useState(false) // ← lazy: src solo se pone al ser visible
+  const ref               = useRef<HTMLVideoElement>(null)
+  const [error,   setError]   = useState(false)
+  const [playing, setPlaying] = useState(false) // visible solo cuando reproduce
+  const [active,  setActive]  = useState(false) // lazy: src activado
 
-  // ── Lazy load + play/pause por viewport ─────────────────────
+  // ── Helpers ─────────────────────────────────────────────────
+  const forcePlay = () => {
+    const vid = ref.current
+    if (!vid) return
+    // Atributos imperativos para iOS Safari
+    vid.muted = true
+    vid.setAttribute('playsinline', '')
+    vid.setAttribute('webkit-playsinline', '')
+    vid.play().catch(() => {})
+  }
+
+  // ── IO: lazy src + play/pause por visibilidad ──────────────
   useEffect(() => {
     const vid = ref.current
     if (!vid || !src) return
@@ -32,70 +52,66 @@ export function SliderVideo({
     const io = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          // Primera vez visible: activar src → browser empieza a cargar
-          setActive(true)
-          // Si ya tiene datos (src previamente cargado), reproducir inmediatamente
-          if (vid.readyState >= 2) {
-            vid.play().catch(() => {})
-          }
+          setActive(true)                   // activa src (1 sola vez)
+          if (vid.readyState >= 2) forcePlay() // si ya tiene datos, reproducir
         } else {
           vid.pause()
         }
       },
       {
-        threshold: 0.05,
-        // 200 px vertical (anticipar scroll hasta la sección)
-        // 600 px horizontal (precargar items adyacentes del slider)
-        rootMargin: '200px 600px 200px 600px',
+        threshold: 0.01,
+        rootMargin: '400px 1200px 400px 1200px',
       }
     )
 
+    // Atributos webkit al montar
+    vid.setAttribute('playsinline', '')
+    vid.setAttribute('webkit-playsinline', '')
+
     io.observe(vid)
     return () => io.disconnect()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src])
 
   if (!src || error) {
-    return (
-      <div style={{
-        ...style,
-        background: 'linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%)',
-      }} />
-    )
+    return <div style={{ ...style, background: '#1e1e1e', flexShrink: 0 }} />
   }
 
   return (
-    <div style={{ position: 'relative', ...style, background: '#0d0d0d' }}>
-      {/* Shimmer mientras el video no tiene primer frame */}
-      {!ready && (
-        <div style={{
-          position: 'absolute', inset: 0, zIndex: 1,
-          background: 'linear-gradient(135deg, #1c1c1c 0%, #111 50%, #1c1c1c 100%)',
-          backgroundSize: '200% 100%',
-          animation: 'slider-shimmer 1.6s ease infinite',
-        }} />
-      )}
+    <div style={{ position: 'relative', ...style, background: '#181818', overflow: 'hidden' }}>
+      {/* Shimmer mientras el video no ha arrancado */}
+      {!playing && <div style={shimmerStyle} />}
+
       <video
         ref={ref}
         src={active ? src : undefined}
         muted
         loop
         playsInline
-        autoPlay          /* cuando src se activa, el browser reproduce solo */
-        preload="none"    /* sin requests hasta que src esté asignado */
-        onCanPlay={() => {
-          // Backup: forzar play cuando el browser esté listo
-          ref.current?.play().catch(() => {})
-        }}
-        onLoadedData={() => setReady(true)}
+        autoPlay
+        preload="none"
+        // iOS Safari: oculta PiP, fullscreen y controles nativos
+        disablePictureInPicture
+        controlsList="nodownload nofullscreen noremoteplayback"
+        data-slider-video=""
+        onLoadedMetadata={forcePlay}   // primer evento al tener metadatos
+        onCanPlay={forcePlay}           // cuando tiene suficientes datos
+        onPlay={() => setPlaying(true)} // video realmente reproduciendo → mostrar
         onError={() => setError(true)}
         style={{
-          ...style,
-          position: 'relative', zIndex: 2,
-          opacity: ready ? 1 : 0,
-          transition: 'opacity .4s ease',
+          // Llenar el contenedor absolutamente
+          position: 'absolute', inset: 0,
+          width: '100%', height: '100%',
           objectFit: 'cover',
           objectPosition: 'top center',
           display: 'block',
+          // Visibilidad: oculto hasta que play() confirme reproducción
+          opacity: playing ? 1 : 0,
+          transition: 'opacity .4s ease',
+          // Bloquear interacción: evita que iOS muestre controles al tocar
+          pointerEvents: 'none',
+          // Sin fondo negro transparente
+          background: 'transparent',
         }}
       />
     </div>
@@ -105,10 +121,7 @@ export function SliderVideo({
 /**
  * SliderImg
  * ─────────────────────────────────────────────────────────────
- * • src NO se asigna hasta que el elemento está cerca del viewport.
- * • Shimmer + fade-in cuando termina de cargar.
- * • Sin loading="lazy" (incompatible con sliders transform-based).
- * • Errores manejados sin romper layout.
+ * src lazy vía IO, shimmer + fade-in al cargar.
  */
 export function SliderImg({
   src,
@@ -117,10 +130,10 @@ export function SliderImg({
   src: string
   style?: React.CSSProperties
 }) {
-  const ref        = useRef<HTMLImageElement>(null)
+  const ref               = useRef<HTMLImageElement>(null)
   const [ready,  setReady]  = useState(false)
   const [error,  setError]  = useState(false)
-  const [active, setActive] = useState(false) // ← lazy: src solo al acercarse al viewport
+  const [active, setActive] = useState(false)
 
   useEffect(() => {
     const img = ref.current
@@ -130,12 +143,12 @@ export function SliderImg({
       ([entry]) => {
         if (entry.isIntersecting) {
           setActive(true)
-          io.disconnect() // imagen: solo cargar una vez
+          io.disconnect()
         }
       },
       {
         threshold: 0.01,
-        rootMargin: '200px 800px 200px 800px',
+        rootMargin: '400px 1600px 400px 1600px',
       }
     )
 
@@ -144,24 +157,12 @@ export function SliderImg({
   }, [src])
 
   if (!src || error) {
-    return (
-      <div style={{
-        ...style,
-        background: 'linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%)',
-      }} />
-    )
+    return <div style={{ ...style, background: '#1e1e1e', flexShrink: 0 }} />
   }
 
   return (
-    <div style={{ position: 'relative', ...style, background: '#0d0d0d' }}>
-      {!ready && (
-        <div style={{
-          position: 'absolute', inset: 0, zIndex: 1,
-          background: 'linear-gradient(135deg, #1c1c1c 0%, #111 50%, #1c1c1c 100%)',
-          backgroundSize: '200% 100%',
-          animation: 'slider-shimmer 1.6s ease infinite',
-        }} />
-      )}
+    <div style={{ position: 'relative', ...style, background: '#181818', overflow: 'hidden' }}>
+      {!ready && <div style={shimmerStyle} />}
       <img
         ref={ref}
         src={active ? src : undefined}
@@ -170,13 +171,14 @@ export function SliderImg({
         onLoad={() => setReady(true)}
         onError={() => setError(true)}
         style={{
-          ...style,
-          position: 'relative', zIndex: 2,
-          opacity: ready ? 1 : 0,
-          transition: 'opacity .4s ease',
+          position: 'absolute', inset: 0,
+          width: '100%', height: '100%',
           objectFit: 'cover',
           objectPosition: 'top center',
           display: 'block',
+          opacity: ready ? 1 : 0,
+          transition: 'opacity .4s ease',
+          pointerEvents: 'none',
         }}
       />
     </div>
