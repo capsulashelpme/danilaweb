@@ -251,9 +251,11 @@ function PlanDrawer({ activeId, onClose }: { activeId: Plan['id'] | null; onClos
               borderRight: `1px solid ${plan.accentColor}40`,
               borderBottom: 'none',
               borderRadius: '28px 28px 0 0',
-              maxHeight: '90vh',
+              maxHeight: '88svh',   // svh = small viewport height, no incluye barra iOS
+              height: '88svh',      // altura fija para que el bottom siempre sea visible
               display: 'flex',
               flexDirection: 'column',
+              overflow: 'hidden',   // recortar contenido, no extenderse
               boxShadow: `0 -24px 64px -12px rgba(0,0,0,0.7), 0 -4px 32px -8px ${plan.accentColor}28`,
             }}
           >
@@ -281,7 +283,9 @@ function PlanDrawer({ activeId, onClose }: { activeId: Plan['id'] | null; onClos
             {/* Scrollable content */}
             <div style={{
               flex: 1,
+              minHeight: 0,       // imprescindible en flex column para que se pueda encoger
               overflowY: 'auto',
+              overflowX: 'hidden',
               padding: '20px 22px',
               paddingBottom: 20,
               WebkitOverflowScrolling: 'touch' as React.CSSProperties['WebkitOverflowScrolling'],
@@ -357,13 +361,12 @@ function PlanDrawer({ activeId, onClose }: { activeId: Plan['id'] | null; onClos
 
             </div>
 
-            {/* ── Sticky bottom: precio + incluido + CTA ── */}
+            {/* ── Bottom fijo: precio + incluido + CTA ── */}
             <div style={{
-              position: 'sticky',
-              bottom: 0,
               flexShrink: 0,
-              padding: '0 22px 32px',
-              background: `linear-gradient(180deg, transparent 0%, #0a0704 22%)`,
+              padding: '0 22px',
+              paddingBottom: 'max(28px, env(safe-area-inset-bottom))',
+              background: `linear-gradient(180deg, transparent 0%, #0a0704 18%)`,
               display: 'flex',
               flexDirection: 'column',
               gap: 14,
