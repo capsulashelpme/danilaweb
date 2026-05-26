@@ -174,11 +174,8 @@ export function VideoSlider() {
             display: 'flex',
             gap: 14,
             padding: '6px 20px 10px',
-            overflowX: 'scroll',
-            overflowY: 'hidden',
-            scrollbarWidth: 'none' as React.CSSProperties['scrollbarWidth'],
             cursor: 'grab',
-            WebkitOverflowScrolling: 'touch' as React.CSSProperties['WebkitOverflowScrolling'],
+            willChange: 'transform',
           }}
         >
           {useDb

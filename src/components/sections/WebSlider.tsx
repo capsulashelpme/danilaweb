@@ -106,11 +106,8 @@ export function WebSlider() {
             display: 'flex',
             gap: 16,
             padding: '6px 20px 12px',
-            overflowX: 'scroll',
-            overflowY: 'hidden',
-            scrollbarWidth: 'none' as React.CSSProperties['scrollbarWidth'],
             cursor: 'grab',
-            WebkitOverflowScrolling: 'touch' as React.CSSProperties['WebkitOverflowScrolling'],
+            willChange: 'transform',
           }}
         >
           {items.map((d, i) => (
