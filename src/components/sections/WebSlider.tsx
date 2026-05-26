@@ -71,13 +71,18 @@ export function WebSlider() {
   const trackRef = useInfiniteSlider(0.028)
   const { assets: dbAssets, loaded } = useMediaAssets('diseno_web_desarrollo')
 
-  const useDb   = loaded && dbAssets.length > 0
-  const baseWeb = useDb
+  const useDb = loaded && dbAssets.length > 0
+  const base  = useDb
     ? dbAssets
-        .filter(a => a.url && a.url.trim() !== '') // filtrar URLs inválidas
+        .filter(a => a.url && a.url.trim() !== '')
         .map(a => ({ id: a.id, file: a.url, type: a.type }))
     : DEMOS.map(d => ({ ...d, type: 'image' as const }))
-  const items = [...baseWeb, ...baseWeb, ...baseWeb]
+  // Keys estables -A/-B/-C
+  const items = [
+    ...base.map(d => ({ ...d, _key: `${d.id}-A` })),
+    ...base.map(d => ({ ...d, _key: `${d.id}-B` })),
+    ...base.map(d => ({ ...d, _key: `${d.id}-C` })),
+  ]
 
   return (
     <section id="webs" style={{ padding: '72px 0' }}>
@@ -113,8 +118,8 @@ export function WebSlider() {
             willChange: 'transform',
           }}
         >
-          {items.map((d, i) => (
-            <WebCard key={`${d.id}-${i}`} d={{ id: d.id, file: d.file }} />
+          {items.map((d) => (
+            <WebCard key={d._key} d={{ id: d.id, file: d.file }} />
           ))}
         </div>
       </div>

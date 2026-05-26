@@ -131,14 +131,23 @@ export function VideoSlider() {
   const useDb       = loaded && dbAssets.length > 0
   const useFallback = loaded && dbAssets.length === 0
 
-  const baseItems = useDb
-    ? dbAssets.filter(a => a.url && a.url.trim() !== '') // filtrar URLs inválidas
-    : useFallback
-    ? VIDEOS
-    : null   // null = todavía cargando
+  const validDb = useDb
+    ? dbAssets.filter(a => a.url && a.url.trim() !== '')
+    : null
 
-  const items = baseItems
-    ? [...baseItems, ...baseItems, ...baseItems]
+  // Keys estables: sufijo -A/-B/-C en vez de índice numérico.
+  // Así un refetch de Supabase que reordene los items NO causa unmount/remount
+  // de los SliderVideo, evitando el flash negro al recargar estado.
+  const items = validDb
+    ? [
+        ...validDb.map(a => ({ ...a, _key: `${a.id}-A` })),
+        ...validDb.map(a => ({ ...a, _key: `${a.id}-B` })),
+        ...validDb.map(a => ({ ...a, _key: `${a.id}-C` })),
+      ]
+    : useFallback
+    ? [...VIDEOS.map(v => ({ ...v, _key: `${v.id}-A` })),
+       ...VIDEOS.map(v => ({ ...v, _key: `${v.id}-B` })),
+       ...VIDEOS.map(v => ({ ...v, _key: `${v.id}-C` }))]
     : null
 
   return (
@@ -188,10 +197,10 @@ export function VideoSlider() {
           ))}
 
           {/* Contenido DB */}
-          {useDb && (items as typeof dbAssets).map((a, i: number) => {
+          {useDb && items && (items as (MediaAsset & { _key: string })[]).map((a) => {
             const views = (a as MediaAsset & { views_count?: number }).views_count ?? 0
             return (
-              <div key={`${a.id}-${i}`} aria-hidden="true" style={{
+              <div key={a._key} aria-hidden="true" style={{
                 position: 'relative', width: 160, height: 284, flexShrink: 0,
                 borderRadius: 16, overflow: 'hidden', background: '#181818',
                 border: '1px solid rgba(255,255,255,0.08)', userSelect: 'none', pointerEvents: 'none',
@@ -219,8 +228,8 @@ export function VideoSlider() {
           })}
 
           {/* Fallback sin DB */}
-          {useFallback && (items as typeof VIDEOS).map((v, i) => (
-            <VideoCard key={`${v.id}-${i}`} v={v} />
+          {useFallback && items && (items as (VideoItem & { _key: string })[]).map((v) => (
+            <VideoCard key={v._key} v={v} />
           ))}
         </div>
       </div>

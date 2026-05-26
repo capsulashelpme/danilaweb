@@ -3,7 +3,7 @@ import { useMediaAssets } from '@/components/admin/MediaManager'
 import { SliderVideo, SliderImg } from '@/components/ui/SliderMedia'
 
 // ── Creativos locales (fallback si no hay assets en DB) ────────
-interface Creative { id: string; file: string; type: 'image' | 'video' }
+interface Creative { id: string; file: string; type: 'image' | 'video'; _key?: string }
 
 const CREATIVES: Creative[] = [
   { id: '1', file: '/ads/1.png',  type: 'image' },
@@ -46,12 +46,17 @@ export function CasesSlider() {
   const trackRef = useInfiniteSlider(0.038)
   const { assets: dbAssets, loaded } = useMediaAssets('creativos_publicidad')
 
-  const baseItems: Creative[] = loaded && dbAssets.length > 0
+  const base: Creative[] = loaded && dbAssets.length > 0
     ? dbAssets
-        .filter(a => a.url && a.url.trim() !== '')   // filtrar URLs vacías/nulas
+        .filter(a => a.url && a.url.trim() !== '')
         .map(a => ({ id: a.id, file: a.url, type: a.type as 'image' | 'video' }))
     : CREATIVES
-  const items = [...baseItems, ...baseItems, ...baseItems]
+  // Keys estables con sufijo -A/-B/-C → un refetch no desmonta los SliderVideo
+  const items = [
+    ...base.map(c => ({ ...c, _key: `${c.id}-A` })),
+    ...base.map(c => ({ ...c, _key: `${c.id}-B` })),
+    ...base.map(c => ({ ...c, _key: `${c.id}-C` })),
+  ]
 
   return (
     <section id="casos" style={{ padding: '72px 0' }}>
@@ -76,7 +81,7 @@ export function CasesSlider() {
         maskImage:        'linear-gradient(90deg, transparent 0%, #000 6%, #000 94%, transparent 100%)',
       }}>
         <div ref={trackRef} style={{ display: 'flex', gap: 14, padding: '6px 20px 10px', cursor: 'grab', willChange: 'transform' }}>
-          {items.map((c, i) => <AdCard key={`${c.id}-${i}`} c={c} />)}
+          {items.map((c) => <AdCard key={c._key} c={c} />)}
         </div>
       </div>
 

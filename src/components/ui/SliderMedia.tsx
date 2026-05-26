@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 
+// ── Módulo-nivel: persiste URLs activadas entre re-renders/remounts ─
+// Si un SliderVideo se desmonta y remonta (p.ej. por Realtime refetch),
+// sabe que este URL ya fue activado y arranca sin esperar al IO.
+const _activated = new Set<string>()
+
 // ── Shimmer skeleton (compartido) ────────────────────────────
 const shimmerStyle: React.CSSProperties = {
   position: 'absolute', inset: 0, zIndex: 1,
@@ -47,7 +52,9 @@ function _SliderVideo({
   const ref               = useRef<HTMLVideoElement>(null)
   const [error,   setError]   = useState(false)
   const [playing, setPlaying] = useState(false)
-  const [active,  setActive]  = useState(false)
+  // Si este src fue activado antes (aunque el componente se haya desmontado),
+  // inicializar como activo para evitar pantalla negra en re-renders.
+  const [active,  setActive]  = useState(() => _activated.has(src))
 
   // ── PASO 3: cuando el src se activa, forzar carga inmediata ─
   // Sin esto, preload="none" hace que el browser espere indefinidamente
@@ -78,6 +85,7 @@ function _SliderVideo({
     const io = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
+          _activated.add(src)                  // persistir entre re-renders
           setActive(true)                      // activa src + dispara useEffect [active]
           if (vid.readyState >= 2) forcePlay() // si ya tiene datos, reproducir ya
         } else {
