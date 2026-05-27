@@ -177,11 +177,17 @@
     transform: translateY(0);
   }
 
-  /* ── Slider track: GPU compositing para scroll suave ── */
+  /* ── Slider track: GPU compositing + touch-action para iOS Safari ── */
   [data-slider-track] {
     will-change: scroll-position;
     transform: translateZ(0);
     backface-visibility: hidden;
+    touch-action: pan-y;   /* browser maneja scroll vertical, JS maneja horizontal */
+  }
+
+  /* touch-action NO hereda en CSS — hay que aplicarlo explícitamente a todos los hijos */
+  [data-slider-track] * {
+    touch-action: pan-y;
   }
 
   /* ── Slider cards: containment para evitar reflow en cadena ── */

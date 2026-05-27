@@ -173,6 +173,7 @@ export function VideoSlider() {
         width: '100%',
         WebkitMaskImage: 'linear-gradient(90deg, transparent 0%, #000 6%, #000 94%, transparent 100%)',
         maskImage: 'linear-gradient(90deg, transparent 0%, #000 6%, #000 94%, transparent 100%)',
+        touchAction: 'pan-y',
       }}>
         <div
           ref={trackRef}
