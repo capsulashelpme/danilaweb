@@ -392,110 +392,237 @@ html[data-theme="light"] .brand-img { filter: brightness(0) invert(0); opacity: 
    MODO CLARO — overrides globales
    ══════════════════════════════════════════════════════ */
 
-/* ── 1. Body: gradiente naranja-luz muy sutil en la parte superior ──
-   Efecto: como si hubiera luz cálida entrando desde arriba.
-   No en toda la página, solo en el inicio.                          */
+/* ══════════════════════════════════════════════════════════════
+   MODO CLARO — todos los overrides
+   ══════════════════════════════════════════════════════════════ */
+
+/* 1 ── Body: luz cálida suave desde arriba */
 html[data-theme="light"] body {
   background:
     radial-gradient(ellipse 110% 420px at 50% -40px,
-      rgba(255, 120, 40, 0.10) 0%,
-      rgba(255, 160, 80, 0.04) 40%,
-      transparent 70%
-    ),
+      rgba(255,120,40,0.09) 0%,
+      rgba(255,160,80,0.03) 45%,
+      transparent 70%),
     var(--bg-0);
 }
 
-/* ── 2. Transiciones suaves al cambiar de tema ── */
+/* 2 ── Transición suave global */
 html[data-theme="light"] *,
 html[data-theme="light"] *::before,
 html[data-theme="light"] *::after {
   transition: background-color .35s ease, border-color .35s ease,
               color .35s ease, box-shadow .35s ease;
 }
-/* No interferir con animaciones propias de componentes */
 html[data-theme="light"] [class*="animate"],
-html[data-theme="light"] [style*="animation"] {
-  transition: none;
-}
+html[data-theme="light"] [style*="animation"] { transition: none; }
 
-/* ── 3. Dot-grid: puntitos oscuros en lugar de claros ── */
+/* 3 ── Dot-grid: puntos oscuros */
 html[data-theme="light"] .dot-grid::before {
   background-image: radial-gradient(rgba(0,0,0,0.07) 1px, transparent 1px);
-  opacity: 0.5;
+  opacity: 0.45;
 }
 
-/* ── 4. SobreMe: override del dark gradient hardcodeado ──
-   Solo el bg; el texto ya usa CSS vars.                   */
+/* 4 ── HERO: gradiente blanco → naranja cálido
+   Reemplaza el dark "hero-animated-bg" por versión claro.
+   La animación de posición se hereda, solo cambia el color. */
+html[data-theme="light"] .hero-animated-bg {
+  background:
+    radial-gradient(120% 80% at 100% 0%,  rgba(255,120,50,0.22),  transparent 55%),
+    radial-gradient(80%  60% at 0%   100%, rgba(255,150,70,0.14),  transparent 50%),
+    linear-gradient(180deg, #FFF8F2 0%, #FDFCFB 100%) !important;
+  animation: hero-shift 10s ease-in-out infinite;
+}
+/* Partículas: desactivar en modo claro (no se verían bien sobre blanco) */
+html[data-theme="light"] .hero-animated-bg::after { opacity: 0; }
+
+/* 5 ── SobreMe: sección de presentación */
 html[data-theme="light"] #sobre-mi {
   background:
-    radial-gradient(ellipse 80% 55% at 50% 100%,
-      rgba(255, 110, 30, 0.06) 0%,
-      transparent 70%
-    ),
+    radial-gradient(80% 55% at 50% 100%, rgba(255,110,30,0.06), transparent 70%),
     linear-gradient(180deg, var(--bg-1) 0%, var(--bg-0) 100%) !important;
 }
 
-/* ── 5. ProcessSteps cards ── */
+/* 6 ── ProcessSteps: cards */
 html[data-theme="light"] #proceso .reveal > div,
 html[data-theme="light"] #proceso [class~="reveal"] > div {
   border-color: var(--card-border) !important;
   background: var(--bg-2) !important;
 }
 
-/* ── 6. ServicesGrid cards ── */
+/* 7 ── ServicesGrid: cards + acento lateral */
+html[data-theme="light"] #servicios {
+  background:
+    radial-gradient(ellipse 70% 300px at 100% 50%,
+      rgba(255,110,30,0.05), transparent 65%),
+    transparent;
+}
 html[data-theme="light"] #servicios .reveal > div,
 html[data-theme="light"] #servicios [class~="reveal"] > div {
   border-color: var(--card-border) !important;
   background: var(--bg-2) !important;
 }
 
-/* ── 7. Sección servicios — acento de gradiente en la sección entera ── */
-html[data-theme="light"] #servicios {
-  background:
-    radial-gradient(ellipse 70% 300px at 100% 50%,
-      rgba(255, 110, 30, 0.05) 0%,
-      transparent 65%
-    ),
-    transparent;
-}
+/* 8 ── DashboardPreview: mantener oscuro */
+html[data-theme="light"] #dashboard { background: transparent; }
 
-/* ── 8. DashboardPreview: mantener oscuro (es un "mock" de pantalla) ── */
-html[data-theme="light"] #dashboard {
-  background: transparent;
-}
-
-/* ── 9. Testimonials ── */
+/* 9 ── Testimonials */
 html[data-theme="light"] [aria-label="Opiniones de clientes"] {
   background: var(--bg-0) !important;
 }
 
-/* ── 10. RouteSelector / Selector ── */
+/* 10 ── RouteSelector: cards de rutas
+   Los divs con dark bg hardcodeado (#0e0e0e, #1c0d04…) necesitan override */
 html[data-theme="light"] #selector {
   color: var(--fg-0);
 }
+/* Tarjeta activa (primera, dark hardcoded) */
+html[data-theme="light"] #selector [style*="#0e0e0e"],
+html[data-theme="light"] #selector [style*="0e0e0e"],
+html[data-theme="light"] #selector [style*="#1c0d04"],
+html[data-theme="light"] #selector [style*="1c0d04"],
+html[data-theme="light"] #selector [style*="#2a1208"],
+html[data-theme="light"] #selector [style*="linear-gradient(135deg, #0e0e0e"] {
+  background: var(--bg-3) !important;
+  color: var(--fg-0) !important;
+}
+/* Texto blanco forzado dentro de las tarjetas del selector → negro */
+html[data-theme="light"] #selector * {
+  color: var(--fg-0);
+}
+/* Preservar colores de acento: naranja, verde, precio */
+html[data-theme="light"] #selector [style*="color: var(--orange"],
+html[data-theme="light"] #selector [style*="color: #FF"],
+html[data-theme="light"] #selector [style*="color: rgba(255,90,31"],
+html[data-theme="light"] #selector [style*="#2ECC71"],
+html[data-theme="light"] #selector [style*="2ECC71"] {
+  color: inherit;
+}
+/* Bordes de las tarjetas del selector */
+html[data-theme="light"] #selector [style*="border: 1px solid rgba(255,255,255"],
+html[data-theme="light"] #selector [style*="border:1px solid rgba(255,255,255"] {
+  border-color: var(--card-border) !important;
+}
+/* Fondo del drawer / panel expandible */
+html[data-theme="light"] #selector [style*="background: linear-gradient(180deg, transparent 0%, #0a0704"] {
+  background: linear-gradient(180deg, transparent 0%, var(--bg-1) 18%) !important;
+}
 
-/* ── 11. LegalFooter ── */
-html[data-theme="light"] footer {
+/* 11 ── FINAL CTA: gradiente naranja→blanco en lugar de oscuro
+   El componente usa .dot-grid + inline background con #1a0d07 */
+html[data-theme="light"] section > .dot-grid[style*="1a0d07"],
+html[data-theme="light"] section > .dot-grid[style*="0a0503"] {
+  background:
+    radial-gradient(80% 100% at 50% 0%, rgba(255,100,30,0.18), transparent 55%),
+    radial-gradient(60% 60% at 100% 100%, rgba(255,130,50,0.10), transparent 65%),
+    linear-gradient(180deg, #FFF3EA 0%, #FDFCFB 100%) !important;
+  border-top-color: rgba(255,100,30,0.25) !important;
+  border-bottom-color: var(--card-border) !important;
+}
+/* Texto del CTA sobre fondo claro: debe ser oscuro */
+html[data-theme="light"] section > .dot-grid[style*="1a0d07"] *,
+html[data-theme="light"] section > .dot-grid[style*="0a0503"] * {
+  color: var(--fg-0);
+}
+/* Copyright en el CTA */
+html[data-theme="light"] section > .dot-grid[style*="1a0d07"] [style*="rgba(255,255,255,0.2)"],
+html[data-theme="light"] section > .dot-grid[style*="0a0503"] [style*="rgba(255,255,255,0.2)"] {
+  color: var(--fg-3) !important;
+}
+
+/* 12 ── LEGALFOOTER: todos los textos/fondos hardcodeados */
+html[data-theme="light"] footer,
+html[data-theme="light"] footer * {
+  color: var(--fg-2);
+}
+/* Contenedor principal del footer (bg #1a1a1a) */
+html[data-theme="light"] footer [style*="background: '#1a1a1a'"],
+html[data-theme="light"] footer [style*='background: "#1a1a1a"'],
+html[data-theme="light"] footer [style*="#1a1a1a"] {
+  background: var(--bg-2) !important;
+  border-color: var(--card-border) !important;
+  color: var(--fg-0) !important;
+}
+/* Fondo inferior del footer (#070707) */
+html[data-theme="light"] footer [style*="#070707"] {
   background: var(--bg-1) !important;
   border-top-color: var(--card-border) !important;
 }
+html[data-theme="light"] footer [style*="#070707"] * {
+  color: var(--fg-2);
+}
+/* Links de navegación del footer */
+html[data-theme="light"] footer a,
+html[data-theme="light"] footer button {
+  color: var(--fg-2) !important;
+}
+/* Iconos de contacto */
+html[data-theme="light"] footer [style*="rgba(255,255,255,0.06)"],
+html[data-theme="light"] footer [style*="rgba(255,255,255,0.08)"] {
+  background: var(--bg-3) !important;
+  color: var(--fg-1) !important;
+}
+/* Separador vertical */
+html[data-theme="light"] footer [style*="rgba(255,255,255,0.12)"] {
+  border-color: var(--card-border) !important;
+}
+/* Botón de contacto blanco → adaptado */
+html[data-theme="light"] footer [style*="background: '#fff'"],
+html[data-theme="light"] footer [style*="background: \"#fff\""],
+html[data-theme="light"] footer [style*="background: '#fff'"] {
+  background: var(--bg-0) !important;
+  color: var(--fg-0) !important;
+  border: 1px solid var(--card-border) !important;
+}
+/* Botón outline en footer */
+html[data-theme="light"] footer [style*="rgba(255,255,255,0.15)"] {
+  border-color: var(--card-border) !important;
+  color: var(--fg-1) !important;
+}
+/* Color del texto del Copyright y muted */
+html[data-theme="light"] footer [style*="rgba(255,255,255,0.22)"],
+html[data-theme="light"] footer [style*="rgba(255,255,255,0.5)"],
+html[data-theme="light"] footer [style*="rgba(255,255,255,0.75)"] {
+  color: var(--fg-3) !important;
+}
 
-/* ── 12. Dock — glass blanco con sombra cálida ── */
+/* 13 ── Bordes negros en sliders: transparentes en modo claro
+   Los sliders de media mantienen su fondo oscuro, pero el borde
+   negro en el contenedor externo desaparece */
+html[data-theme="light"] #casos > .reveal > div,
+html[data-theme="light"] #contenido > .reveal > div,
+html[data-theme="light"] #webs > .reveal > div {
+  border-color: transparent !important;
+}
+/* Wrapper de los sliders: quitar cualquier borde heredado */
+html[data-theme="light"] #casos,
+html[data-theme="light"] #contenido,
+html[data-theme="light"] #webs {
+  border: none !important;
+  outline: none !important;
+}
+
+/* 14 ── Dock — glass marfil */
 html[data-theme="light"] nav[aria-label="Acciones rápidas"] {
-  background: rgba(255, 253, 250, 0.72) !important;
+  background: rgba(255,253,250,0.75) !important;
   border-color: rgba(0,0,0,0.09) !important;
   box-shadow:
     0 8px 32px rgba(0,0,0,0.08),
-    0 2px 8px rgba(200, 100, 30, 0.06),
-    inset 0 1px 0 rgba(255,255,255,0.85) !important;
+    0 2px 8px rgba(200,100,30,0.05),
+    inset 0 1px 0 rgba(255,255,255,0.9) !important;
 }
 
-/* ── 13. Progress bars: base en modo claro ── */
-html[data-theme="light"] .progress-bar {
-  background: var(--bg-3);
-}
+/* 15 ── Progress bars */
+html[data-theme="light"] .progress-bar { background: var(--bg-3); }
 
-/* ── 14. Eyebrow dot glow — más suave en claro ── */
+/* 16 ── Eyebrow dot glow suave */
 html[data-theme="light"] .eyebrow::before {
-  box-shadow: 0 0 8px rgba(255,90,31,0.25);
+  box-shadow: 0 0 8px rgba(255,90,31,0.22);
+}
+
+/* ── Bordes internos de tarjetas en sliders: invisibles en modo claro ──
+   Las tarjetas tienen fondo oscuro (son showcase de media), el borde
+   blanco-transparente queda negro sobre fondo claro del page → quitar  */
+html[data-theme="light"] [data-slider-track] > div {
+  border-color: transparent !important;
+  outline: none !important;
 }
