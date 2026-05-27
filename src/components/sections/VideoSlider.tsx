@@ -2,6 +2,67 @@ import { useInfiniteSlider } from '@/hooks/useInfiniteSlider'
 import { useMediaAssets, type MediaAsset } from '@/components/admin/MediaManager'
 import { SliderVideo, SliderImg } from '@/components/ui/SliderMedia'
 
+// ── YouTube helpers ───────────────────────────────────────────
+function getYouTubeId(url: string): string | null {
+  try {
+    const u = new URL(url)
+    // youtu.be/ID
+    if (u.hostname === 'youtu.be') return u.pathname.slice(1).split('?')[0]
+    // youtube.com/shorts/ID
+    if (u.pathname.startsWith('/shorts/')) return u.pathname.split('/shorts/')[1].split('?')[0]
+    // youtube.com/watch?v=ID
+    return u.searchParams.get('v')
+  } catch { return null }
+}
+
+function isYouTube(url: string): boolean {
+  return url.includes('youtube.com') || url.includes('youtu.be')
+}
+
+// Embed de YouTube en formato vertical (9:16) para el slider
+function YouTubeCard({ url, views }: { url: string; views?: number }) {
+  const id = getYouTubeId(url)
+  if (!id) return null
+  const embedUrl = `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&playsinline=1&rel=0&modestbranding=1`
+  return (
+    <div style={{
+      position: 'relative', width: 160, height: 284, flexShrink: 0,
+      borderRadius: 16, overflow: 'hidden',
+      background: '#181818',
+      border: '1px solid rgba(255,255,255,0.08)',
+      userSelect: 'none',
+    }}>
+      <iframe
+        src={embedUrl}
+        title="YouTube video"
+        allow="autoplay; encrypted-media"
+        allowFullScreen={false}
+        style={{
+          position: 'absolute',
+          // Zoom out un poco para ocultar la barra de título de YouTube
+          top: '-10%', left: '-10%',
+          width: '120%', height: '120%',
+          border: 'none',
+          pointerEvents: 'none',
+        }}
+      />
+      {views && views > 0 && (
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 3,
+          padding: '32px 12px 12px',
+          background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)',
+          display: 'flex', alignItems: 'flex-end', gap: 5,
+        }}>
+          <PlayIcon />
+          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, color: '#fff' }}>
+            {formatViews(views)}
+          </span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function formatViews(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`
   if (n >= 1_000)     return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')}K`
@@ -199,6 +260,10 @@ export function VideoSlider() {
           {/* Contenido DB */}
           {useDb && items && (items as (MediaAsset & { _key: string })[]).map((a) => {
             const views = (a as MediaAsset & { views_count?: number }).views_count ?? 0
+            // Si la URL es de YouTube → iframe embed
+            if (isYouTube(a.url)) {
+              return <YouTubeCard key={a._key} url={a.url} views={views} />
+            }
             return (
               <div key={a._key} aria-hidden="true" style={{
                 position: 'relative', width: 160, height: 284, flexShrink: 0,
