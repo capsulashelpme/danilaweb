@@ -414,10 +414,16 @@ export function AdminPage() {
     ))
 
     // Persiste en DB
-    await supabase.from('client_ad_accounts').update({
+    const { error } = await supabase.from('client_ad_accounts').upsert({
+      profile_id:         id,
       service_start_date: startDate || null,
       service_end_date:   endDate,
-    }).eq('profile_id', id)
+    }, { onConflict: 'profile_id' })
+
+    if (error) {
+      toast(false, 'Error al guardar fecha: ' + error.message)
+      load()
+    }
   }
 
   // ── Marcar pago (también recalcula fechas si hay inicio) ──────
@@ -437,13 +443,20 @@ export function AdminPage() {
       c.id === id ? { ...c, payment_status: status, service_start_date: startDate, service_end_date: endDate } : c
     ))
 
-    await supabase.from('client_ad_accounts').update({
+    const { error } = await supabase.from('client_ad_accounts').upsert({
+      profile_id:         id,
       payment_status:     status,
       service_start_date: startDate,
       service_end_date:   endDate,
-    }).eq('profile_id', id)
+    }, { onConflict: 'profile_id' })
 
     setMarkingPay(null)
+
+    if (error) {
+      // Revertir UI si falló
+      toast(false, 'Error al guardar estado de pago: ' + error.message)
+      load()
+    }
   }
 
   const removeAccount = async (id: string, name: string) => {
