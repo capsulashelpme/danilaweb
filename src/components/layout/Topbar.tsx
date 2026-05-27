@@ -197,12 +197,13 @@ export function Topbar() {
         onClick={toggleTheme}
         aria-label={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
         style={{
+          display: 'none', // oculto temporalmente — no eliminar
           position: 'fixed', top: 18, left: 20, zIndex: 50,
           width: 36, height: 36, borderRadius: '50%',
           background: theme === 'light' ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.08)',
           border: theme === 'light' ? '1px solid rgba(0,0,0,0.12)' : '1px solid rgba(255,255,255,0.12)',
           color: theme === 'light' ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.6)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer', transition: 'all .25s ease',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
@@ -312,17 +313,18 @@ export function Topbar() {
                 <IconInvest />
               </DockButton>
 
-              <DockDivider iconColor={ic} />
-
-              {/* Tema claro/oscuro */}
-              <DockButton
-                as="button"
-                aria-label={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
-                iconColor={ic}
-                onClick={toggleTheme}
-              >
-                {theme === 'dark' ? <IconSun /> : <IconMoon />}
-              </DockButton>
+              {/* Tema claro/oscuro — oculto temporalmente, no eliminar */}
+              <span style={{ display: 'none' }}>
+                <DockDivider iconColor={ic} />
+                <DockButton
+                  as="button"
+                  aria-label={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+                  iconColor={ic}
+                  onClick={toggleTheme}
+                >
+                  {theme === 'dark' ? <IconSun /> : <IconMoon />}
+                </DockButton>
+              </span>
             </>
           )
         })()}
