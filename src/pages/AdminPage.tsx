@@ -414,11 +414,10 @@ export function AdminPage() {
     ))
 
     // Persiste en DB
-    const { error } = await supabase.from('client_ad_accounts').upsert({
-      profile_id:         id,
-      service_start_date: startDate || null,
-      service_end_date:   endDate,
-    }, { onConflict: 'profile_id' })
+    const { error } = await supabase
+      .from('client_ad_accounts')
+      .update({ service_start_date: startDate || null, service_end_date: endDate })
+      .eq('profile_id', id)
 
     if (error) {
       toast(false, 'Error al guardar fecha: ' + error.message)
@@ -443,18 +442,20 @@ export function AdminPage() {
       c.id === id ? { ...c, payment_status: status, service_start_date: startDate, service_end_date: endDate } : c
     ))
 
-    const { error } = await supabase.from('client_ad_accounts').upsert({
-      profile_id:         id,
-      payment_status:     status,
-      service_start_date: startDate,
-      service_end_date:   endDate,
-    }, { onConflict: 'profile_id' })
+    const { data: updated, error } = await supabase
+      .from('client_ad_accounts')
+      .update({ payment_status: status, service_start_date: startDate, service_end_date: endDate })
+      .eq('profile_id', id)
+      .select('profile_id')
 
     setMarkingPay(null)
 
     if (error) {
-      // Revertir UI si falló
       toast(false, 'Error al guardar estado de pago: ' + error.message)
+      load()
+    } else if (!updated || updated.length === 0) {
+      // El cliente no tiene fila en client_ad_accounts — asignar Ad Account primero
+      toast(false, 'Asigna un Ad Account ID al cliente antes de marcar el pago')
       load()
     }
   }
