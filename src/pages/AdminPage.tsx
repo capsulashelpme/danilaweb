@@ -246,7 +246,7 @@ export function AdminPage() {
   const load = async () => {
     setLoading(true)
     const { data: profiles } = await supabase
-      .from('profiles').select('id, full_name, business_name, username, created_at')
+      .from('profiles').select('id, full_name, business_name, username, created_at, payment_status')
       .eq('is_admin', false).order('created_at', { ascending: false })
 
     const { data: accounts } = await supabase
@@ -285,7 +285,7 @@ export function AdminPage() {
       internal_notes:      map[p.id]?.internal_notes ?? null,
       service_start_date:  map[p.id]?.service_start_date ?? null,
       service_end_date:    map[p.id]?.service_end_date ?? null,
-      payment_status:      map[p.id]?.payment_status ?? null,
+      payment_status:      (p as any).payment_status ?? map[p.id]?.payment_status ?? null,
       sub:                subMap[p.id] ? { plan: subMap[p.id].plan, status: subMap[p.id].status, current_period_end: subMap[p.id].current_period_end } : null,
     }))
     setClients(rows)
@@ -442,20 +442,25 @@ export function AdminPage() {
       c.id === id ? { ...c, payment_status: status, service_start_date: startDate, service_end_date: endDate } : c
     ))
 
-    const { data: updated, error } = await supabase
-      .from('client_ad_accounts')
-      .update({ payment_status: status, service_start_date: startDate, service_end_date: endDate })
-      .eq('profile_id', id)
-      .select('profile_id')
+    // 1. Guardar siempre en profiles (todo cliente tiene perfil)
+    const { error: profileErr } = await supabase
+      .from('profiles')
+      .update({ payment_status: status })
+      .eq('id', id)
+
+    // 2. Si tiene Ad Account, actualizar también client_ad_accounts (fechas)
+    const hasAccount = !!clients.find(c => c.id === id)?.meta_ad_account_id
+    if (hasAccount) {
+      await supabase
+        .from('client_ad_accounts')
+        .update({ payment_status: status, service_start_date: startDate, service_end_date: endDate })
+        .eq('profile_id', id)
+    }
 
     setMarkingPay(null)
 
-    if (error) {
-      toast(false, 'Error al guardar estado de pago: ' + error.message)
-      load()
-    } else if (!updated || updated.length === 0) {
-      // El cliente no tiene fila en client_ad_accounts — asignar Ad Account primero
-      toast(false, 'Asigna un Ad Account ID al cliente antes de marcar el pago')
+    if (profileErr) {
+      toast(false, 'Error al guardar estado de pago: ' + profileErr.message)
       load()
     }
   }
