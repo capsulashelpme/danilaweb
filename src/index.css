@@ -47,27 +47,28 @@
 
   /* ── Modo claro ────────────────────────────────────────────── */
   html[data-theme="light"] {
-    --bg-0: #F7F7F5;
-    --bg-1: #F0F0ED;
-    --bg-2: #E8E8E4;
-    --bg-3: #DCDCD7;
-    --bg-4: #CECECA;
-    --fg-0: #111110;
-    --fg-1: #1E1E1C;
-    --fg-2: #4A4A47;
-    --fg-3: #787875;
-    --fg-4: #A0A09C;
-    --border-0: rgba(0,0,0,0.06);
+    /* Base cálida — blanco marfil con un toque de calidez, no gris frío */
+    --bg-0: #FDFCFB;   /* blanco marfil — fondo principal */
+    --bg-1: #F6F2EE;   /* crema muy suave */
+    --bg-2: #EDE8E1;   /* arena clara */
+    --bg-3: #E2DAD0;   /* beige */
+    --bg-4: #D3C9BE;   /* beige más definido */
+    --fg-0: #18170F;   /* negro cálido, no puro */
+    --fg-1: #2A2920;
+    --fg-2: #4E4C43;
+    --fg-3: #7A7870;
+    --fg-4: #A8A59C;
+    --border-0: rgba(0,0,0,0.05);
     --border-1: rgba(0,0,0,0.08);
-    --border-2: rgba(0,0,0,0.13);
-    --card-border:       rgba(0,0,0,0.10);
-    --card-border-hover: rgba(0,0,0,0.18);
-    --card-bg:           rgba(0,0,0,0.035);
-    --surface-icon:      rgba(0,0,0,0.06);
-    --fade-color:        #F7F7F5;
-    --shadow-sm: 0 2px 12px rgba(0,0,0,0.06);
-    --shadow-md: 0 8px 32px rgba(0,0,0,0.10);
-    --shadow-orange: 0 12px 48px -8px rgba(255,90,31,0.30);
+    --border-2: rgba(0,0,0,0.12);
+    --card-border:       rgba(0,0,0,0.09);
+    --card-border-hover: rgba(0,0,0,0.16);
+    --card-bg:           rgba(0,0,0,0.03);
+    --surface-icon:      rgba(0,0,0,0.05);
+    --fade-color:        #FDFCFB;
+    --shadow-sm: 0 2px 16px rgba(0,0,0,0.05);
+    --shadow-md: 0 8px 36px rgba(0,0,0,0.09);
+    --shadow-orange: 0 12px 48px -8px rgba(255,90,31,0.22);
     color-scheme: light;
   }
 
@@ -389,65 +390,112 @@ html[data-theme="light"] .brand-img { filter: brightness(0) invert(0); opacity: 
 
 /* ══════════════════════════════════════════════════════
    MODO CLARO — overrides globales
-   Secciones con bg hardcodeado que deben MANTENER
-   aspecto oscuro (hero, CTA, sobre mí, sliders de media)
-   quedan excluidas explícitamente.
    ══════════════════════════════════════════════════════ */
 
-/* Gradiente sutil en el body para modo claro */
+/* ── 1. Body: gradiente naranja-luz muy sutil en la parte superior ──
+   Efecto: como si hubiera luz cálida entrando desde arriba.
+   No en toda la página, solo en el inicio.                          */
 html[data-theme="light"] body {
   background:
-    radial-gradient(1200px 600px at 50% -100px, rgba(255,90,31,0.05), transparent 70%),
+    radial-gradient(ellipse 110% 420px at 50% -40px,
+      rgba(255, 120, 40, 0.10) 0%,
+      rgba(255, 160, 80, 0.04) 40%,
+      transparent 70%
+    ),
     var(--bg-0);
 }
 
-/* Transición suave en todos los elementos cuando cambia el tema */
+/* ── 2. Transiciones suaves al cambiar de tema ── */
 html[data-theme="light"] *,
 html[data-theme="light"] *::before,
 html[data-theme="light"] *::after {
-  transition: background-color .35s ease, border-color .35s ease, color .35s ease, box-shadow .35s ease;
+  transition: background-color .35s ease, border-color .35s ease,
+              color .35s ease, box-shadow .35s ease;
+}
+/* No interferir con animaciones propias de componentes */
+html[data-theme="light"] [class*="animate"],
+html[data-theme="light"] [style*="animation"] {
+  transition: none;
 }
 
-/* Excluir animaciones de transición — no queremos que interfieran */
-html[data-theme="light"] [style*="animation"],
-html[data-theme="light"] [style*="transition"] {
-  transition: inherit;
+/* ── 3. Dot-grid: puntitos oscuros en lugar de claros ── */
+html[data-theme="light"] .dot-grid::before {
+  background-image: radial-gradient(rgba(0,0,0,0.07) 1px, transparent 1px);
+  opacity: 0.5;
 }
 
-/* ── ProcessSteps cards ── */
+/* ── 4. SobreMe: override del dark gradient hardcodeado ──
+   Solo el bg; el texto ya usa CSS vars.                   */
+html[data-theme="light"] #sobre-mi {
+  background:
+    radial-gradient(ellipse 80% 55% at 50% 100%,
+      rgba(255, 110, 30, 0.06) 0%,
+      transparent 70%
+    ),
+    linear-gradient(180deg, var(--bg-1) 0%, var(--bg-0) 100%) !important;
+}
+
+/* ── 5. ProcessSteps cards ── */
+html[data-theme="light"] #proceso .reveal > div,
 html[data-theme="light"] #proceso [class~="reveal"] > div {
   border-color: var(--card-border) !important;
+  background: var(--bg-2) !important;
 }
 
-/* ── ServicesGrid cards ── */
+/* ── 6. ServicesGrid cards ── */
+html[data-theme="light"] #servicios .reveal > div,
 html[data-theme="light"] #servicios [class~="reveal"] > div {
   border-color: var(--card-border) !important;
+  background: var(--bg-2) !important;
 }
 
-/* ── DashboardPreview: mantener oscuro ── */
+/* ── 7. Sección servicios — acento de gradiente en la sección entera ── */
+html[data-theme="light"] #servicios {
+  background:
+    radial-gradient(ellipse 70% 300px at 100% 50%,
+      rgba(255, 110, 30, 0.05) 0%,
+      transparent 65%
+    ),
+    transparent;
+}
+
+/* ── 8. DashboardPreview: mantener oscuro (es un "mock" de pantalla) ── */
 html[data-theme="light"] #dashboard {
   background: transparent;
 }
 
-/* ── RouteSelector: adaptar bordes ── */
+/* ── 9. Testimonials ── */
+html[data-theme="light"] [aria-label="Opiniones de clientes"] {
+  background: var(--bg-0) !important;
+}
+
+/* ── 10. RouteSelector / Selector ── */
 html[data-theme="light"] #selector {
   color: var(--fg-0);
 }
 
-/* ── LegalFooter sticky cards ── */
+/* ── 11. LegalFooter ── */
 html[data-theme="light"] footer {
   background: var(--bg-1) !important;
   border-top-color: var(--card-border) !important;
 }
 
-/* ── Testimonials section bg via CSS var ── */
-html[data-theme="light"] [aria-label="Opiniones de clientes"] {
-  background: var(--bg-0) !important;
+/* ── 12. Dock — glass blanco con sombra cálida ── */
+html[data-theme="light"] nav[aria-label="Acciones rápidas"] {
+  background: rgba(255, 253, 250, 0.72) !important;
+  border-color: rgba(0,0,0,0.09) !important;
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.08),
+    0 2px 8px rgba(200, 100, 30, 0.06),
+    inset 0 1px 0 rgba(255,255,255,0.85) !important;
 }
 
-/* ── Dock / Topbar: modo claro = fondo glass claro ── */
-html[data-theme="light"] nav[aria-label="Acciones rápidas"] {
-  background: rgba(255,255,255,0.55) !important;
-  border-color: rgba(0,0,0,0.10) !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.7) !important;
+/* ── 13. Progress bars: base en modo claro ── */
+html[data-theme="light"] .progress-bar {
+  background: var(--bg-3);
+}
+
+/* ── 14. Eyebrow dot glow — más suave en claro ── */
+html[data-theme="light"] .eyebrow::before {
+  box-shadow: 0 0 8px rgba(255,90,31,0.25);
 }
