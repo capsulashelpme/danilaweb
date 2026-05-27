@@ -9,6 +9,16 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Manrope:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <!-- Anti-FOUC: aplica el tema ANTES de que React hidrate -->
+    <script>
+      (function(){
+        try {
+          var t = localStorage.getItem('theme');
+          if (t === 'light') document.documentElement.setAttribute('data-theme','light');
+          else document.documentElement.removeAttribute('data-theme');
+        } catch(e){}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

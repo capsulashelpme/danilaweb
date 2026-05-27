@@ -27,7 +27,7 @@ export function ProcessSteps() {
               padding: '22px 20px',
               borderRadius: 'var(--r-lg)',
               background: 'var(--bg-2)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid var(--card-border)',
               position: 'relative',
               display: 'flex', flexDirection: 'column', gap: 10,
               minWidth: 0, minHeight: 170,

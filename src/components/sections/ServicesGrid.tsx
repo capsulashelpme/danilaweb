@@ -47,21 +47,21 @@ export function ServicesGrid() {
               padding: '22px 22px 20px',
               borderRadius: 'var(--r-xl)',
               background: 'var(--bg-2)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid var(--card-border)',
               overflow: 'hidden',
               isolation: 'isolate',
               transition: 'background .2s, border-color .2s',
               minWidth: 0,
             }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-3)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.12)' }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-2)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.08)' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-3)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--card-border-hover)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-2)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--card-border)' }}
             >
               <div style={{ width: 40, height: 40, borderRadius: 11, background: 'rgba(255,90,31,0.12)', border: '1px solid rgba(255,90,31,0.4)', display: 'grid', placeItems: 'center', color: 'var(--orange-1)', marginBottom: 18 }}>
                 <Icon name={s.icon} size={18}/>
               </div>
               <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, letterSpacing: '-.015em', marginBottom: 6 }}>{s.title}</h3>
               <p style={{ fontSize: 13.5, color: 'var(--fg-2)', lineHeight: 1.5, marginBottom: 16 }}>{s.desc}</p>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 14, borderTop: '1px dashed rgba(255,255,255,0.08)', fontSize: 11.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 14, borderTop: '1px dashed var(--card-border)', fontSize: 11.5, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>
                 <span style={{ color: 'var(--orange-1)', fontWeight: 600 }}>{s.tag}</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>
               </div>

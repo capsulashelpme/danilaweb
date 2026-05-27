@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 @layer base {
+  /* ── Modo oscuro (default) ─────────────────────────────────── */
   :root {
     --bg-0: #0C0C0C;
     --bg-1: #111111;
@@ -23,6 +24,12 @@
     --border-1: rgba(255,255,255,0.08);
     --border-2: rgba(255,255,255,0.12);
     --border-orange: rgba(255,90,31,0.4);
+    /* tokens semánticos — usados en componentes para adaptar al tema */
+    --card-border:       rgba(255,255,255,0.08);
+    --card-border-hover: rgba(255,255,255,0.14);
+    --card-bg:           rgba(255,255,255,0.04);
+    --surface-icon:      rgba(255,255,255,0.06);
+    --fade-color:        #0C0C0C;   /* color sólido para los gradientes de fade */
     --r-sm: 10px;
     --r-md: 16px;
     --r-lg: 22px;
@@ -35,6 +42,33 @@
     --shadow-sm: 0 2px 12px rgba(0,0,0,0.4);
     --shadow-md: 0 8px 32px rgba(0,0,0,0.5);
     --shadow-orange: 0 12px 48px -8px rgba(255,90,31,0.45);
+    color-scheme: dark;
+  }
+
+  /* ── Modo claro ────────────────────────────────────────────── */
+  html[data-theme="light"] {
+    --bg-0: #F7F7F5;
+    --bg-1: #F0F0ED;
+    --bg-2: #E8E8E4;
+    --bg-3: #DCDCD7;
+    --bg-4: #CECECA;
+    --fg-0: #111110;
+    --fg-1: #1E1E1C;
+    --fg-2: #4A4A47;
+    --fg-3: #787875;
+    --fg-4: #A0A09C;
+    --border-0: rgba(0,0,0,0.06);
+    --border-1: rgba(0,0,0,0.08);
+    --border-2: rgba(0,0,0,0.13);
+    --card-border:       rgba(0,0,0,0.10);
+    --card-border-hover: rgba(0,0,0,0.18);
+    --card-bg:           rgba(0,0,0,0.035);
+    --surface-icon:      rgba(0,0,0,0.06);
+    --fade-color:        #F7F7F5;
+    --shadow-sm: 0 2px 12px rgba(0,0,0,0.06);
+    --shadow-md: 0 8px 32px rgba(0,0,0,0.10);
+    --shadow-orange: 0 12px 48px -8px rgba(255,90,31,0.30);
+    color-scheme: light;
   }
 
   *, *::before, *::after { box-sizing: border-box; min-width: 0; }
@@ -42,8 +76,8 @@
   html {
     scroll-behavior: smooth;
     background: var(--bg-0);
-    /* overflow: clip no crea scroll container — evita el bug de position:fixed en Safari */
     overflow-x: clip;
+    transition: background-color .35s ease;
   }
 
   body {
@@ -51,6 +85,7 @@
       radial-gradient(1200px 600px at 50% -100px, rgba(255,90,31,0.08), transparent 70%),
       var(--bg-0);
     color: var(--fg-0);
+    transition: background-color .35s ease, color .35s ease;
     font-family: var(--font-body);
     font-size: 16px;
     line-height: 1.5;
@@ -150,8 +185,12 @@
   pointer-events: none;
   z-index: 2;
 }
-.brands-fade-left  { left:  0; background: linear-gradient(to right, #0C0C0C, transparent); }
-.brands-fade-right { right: 0; background: linear-gradient(to left,  #0C0C0C, transparent); }
+.brands-fade-left  { left:  0; background: linear-gradient(to right, var(--fade-color), transparent); }
+.brands-fade-right { right: 0; background: linear-gradient(to left,  var(--fade-color), transparent); }
+
+/* Logos: modo oscuro → blancos; modo claro → negros */
+.brand-img { filter: brightness(0) invert(1); }
+html[data-theme="light"] .brand-img { filter: brightness(0) invert(0); opacity: 0.55; }
 
 @keyframes slider-shimmer {
   0%   { background-position: 200% 0 }
@@ -346,4 +385,69 @@
     max-width: 100% !important;
     box-sizing: border-box;
   }
+}
+
+/* ══════════════════════════════════════════════════════
+   MODO CLARO — overrides globales
+   Secciones con bg hardcodeado que deben MANTENER
+   aspecto oscuro (hero, CTA, sobre mí, sliders de media)
+   quedan excluidas explícitamente.
+   ══════════════════════════════════════════════════════ */
+
+/* Gradiente sutil en el body para modo claro */
+html[data-theme="light"] body {
+  background:
+    radial-gradient(1200px 600px at 50% -100px, rgba(255,90,31,0.05), transparent 70%),
+    var(--bg-0);
+}
+
+/* Transición suave en todos los elementos cuando cambia el tema */
+html[data-theme="light"] *,
+html[data-theme="light"] *::before,
+html[data-theme="light"] *::after {
+  transition: background-color .35s ease, border-color .35s ease, color .35s ease, box-shadow .35s ease;
+}
+
+/* Excluir animaciones de transición — no queremos que interfieran */
+html[data-theme="light"] [style*="animation"],
+html[data-theme="light"] [style*="transition"] {
+  transition: inherit;
+}
+
+/* ── ProcessSteps cards ── */
+html[data-theme="light"] #proceso [class~="reveal"] > div {
+  border-color: var(--card-border) !important;
+}
+
+/* ── ServicesGrid cards ── */
+html[data-theme="light"] #servicios [class~="reveal"] > div {
+  border-color: var(--card-border) !important;
+}
+
+/* ── DashboardPreview: mantener oscuro ── */
+html[data-theme="light"] #dashboard {
+  background: transparent;
+}
+
+/* ── RouteSelector: adaptar bordes ── */
+html[data-theme="light"] #selector {
+  color: var(--fg-0);
+}
+
+/* ── LegalFooter sticky cards ── */
+html[data-theme="light"] footer {
+  background: var(--bg-1) !important;
+  border-top-color: var(--card-border) !important;
+}
+
+/* ── Testimonials section bg via CSS var ── */
+html[data-theme="light"] [aria-label="Opiniones de clientes"] {
+  background: var(--bg-0) !important;
+}
+
+/* ── Dock / Topbar: modo claro = fondo glass claro ── */
+html[data-theme="light"] nav[aria-label="Acciones rápidas"] {
+  background: rgba(255,255,255,0.55) !important;
+  border-color: rgba(0,0,0,0.10) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.7) !important;
 }

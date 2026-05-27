@@ -84,7 +84,7 @@ export function TrustStrip() {
 
   return (
     <section className="brands-section">
-      <p className="brands-title">Marcas con las que he trabajado</p>
+      <p className="brands-title">Marcas que confían en Dani</p>
 
       <div className="brands-marquee">
         <div ref={trackRef} className="brands-track">
