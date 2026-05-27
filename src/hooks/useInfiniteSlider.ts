@@ -15,6 +15,9 @@ export function useInfiniteSlider(speed = 0.036) {
     const container = track.parentElement
     if (container) container.style.overflow = 'hidden'
 
+    // Decirle a Safari iOS: el scroll vertical es del browser, el horizontal lo manejamos nosotros
+    track.style.touchAction = 'pan-y'
+
     let x      = 0
     let raf: number
     let lastT  = performance.now()
@@ -56,43 +59,51 @@ export function useInfiniteSlider(speed = 0.036) {
     let dragging = false
     let prevPX = 0
     const onPointerDown = (e: PointerEvent) => {
+      // Ignorar eventos de touch aquí — los maneja el bloque touch
+      if (e.pointerType === 'touch') return
       paused = true; dragging = true; prevPX = e.clientX
-      track.setPointerCapture(e.pointerId)
       track.style.cursor = 'grabbing'
     }
     const onPointerMove = (e: PointerEvent) => {
-      if (!dragging) return
+      if (e.pointerType === 'touch' || !dragging) return
       move(x + (e.clientX - prevPX)); prevPX = e.clientX
     }
-    const onPointerUp = () => {
+    const onPointerUp = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') return
       dragging = false; track.style.cursor = 'grab'
       setTimeout(() => { paused = false; lastT = performance.now() }, 600)
     }
 
     // ── Touch (iOS Safari) ───────────────────────────────────────
+    let touchActive = false
     const onTouchStart = (e: TouchEvent) => {
       touchStartX = e.touches[0].clientX
       touchStartY = e.touches[0].clientY
       touchDir = null
+      touchActive = true
       paused = true
     }
     const onTouchMove = (e: TouchEvent) => {
+      if (!touchActive) return
       const dx = e.touches[0].clientX - touchStartX
       const dy = e.touches[0].clientY - touchStartY
 
-      // Detectar dirección en el primer movimiento significativo
-      if (!touchDir && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
-        touchDir = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v'
+      if (!touchDir && (Math.abs(dx) > 3 || Math.abs(dy) > 3)) {
+        touchDir = Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v'
       }
 
       if (touchDir === 'h') {
-        e.preventDefault()   // bloquear scroll de página solo en swipe horizontal
-        move(x + (e.touches[0].clientX - touchStartX))
-        touchStartX = e.touches[0].clientX
+        // Aplicar el delta del frame actual (incremental)
+        const curX = e.touches[0].clientX
+        const delta = curX - touchStartX
+        move(x + delta)
+        touchStartX = curX
         touchStartY = e.touches[0].clientY
       }
+      // Si es vertical, no hacemos nada — el browser maneja el scroll de página
     }
     const onTouchEnd = () => {
+      touchActive = false
       touchDir = null
       setTimeout(() => { paused = false; lastT = performance.now() }, 600)
     }
@@ -102,7 +113,7 @@ export function useInfiniteSlider(speed = 0.036) {
     track.addEventListener('pointerup',     onPointerUp)
     track.addEventListener('pointercancel', onPointerUp)
     track.addEventListener('touchstart',    onTouchStart, { passive: true })
-    track.addEventListener('touchmove',     onTouchMove,  { passive: false })
+    track.addEventListener('touchmove',     onTouchMove,  { passive: true })
     track.addEventListener('touchend',      onTouchEnd,   { passive: true })
 
     return () => {
