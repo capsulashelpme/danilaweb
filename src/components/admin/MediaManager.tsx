@@ -78,6 +78,8 @@ export function MediaManager() {
   const [loading,       setLoading]       = useState(false)
   const [uploading,     setUploading]     = useState(false)
   const [uploadPct,     setUploadPct]     = useState(0)
+  const [ytUrl,         setYtUrl]         = useState('')
+  const [ytSaving,      setYtSaving]      = useState(false)
   const [confirmDel,    setConfirmDel]    = useState<MediaAsset | null>(null)
   const [deleting,      setDeleting]      = useState(false)
   const [toast,         setToast]         = useState<{ ok: boolean; msg: string } | null>(null)
@@ -138,6 +140,25 @@ export function MediaManager() {
     else        { showToast(true, 'Archivo subido y publicado en la web ✓') }
     setUploading(false); setUploadPct(0)
     load()
+  }
+
+  const saveYouTubeUrl = async () => {
+    const url = ytUrl.trim()
+    if (!url) return
+    // Validar que sea YouTube
+    if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
+      showToast(false, 'Pega un link de YouTube válido')
+      return
+    }
+    setYtSaving(true)
+    const maxIdx = allAssets.reduce((m, a) => Math.max(m, a.order_index), -1)
+    const { error } = await supabase.from('media_assets').insert({
+      section: activeSection, type: 'video', url,
+      storage_path: '', order_index: maxIdx + 1, is_active: true,
+    })
+    setYtSaving(false)
+    if (error) { showToast(false, 'Error al guardar: ' + error.message) }
+    else { showToast(true, 'Video de YouTube agregado ✓'); setYtUrl(''); load() }
   }
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>, type: MediaType) => {
@@ -250,6 +271,42 @@ export function MediaManager() {
             <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
           </svg>
           {uploading ? 'Subiendo…' : '+ Video'}
+        </button>
+      </div>
+
+      {/* ── Link YouTube ── */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <input
+          type="url"
+          placeholder="Pega link de YouTube…"
+          value={ytUrl}
+          onChange={e => setYtUrl(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') saveYouTubeUrl() }}
+          style={{
+            flex: 1, height: 46, borderRadius: 14, padding: '0 14px',
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            color: '#fff', fontSize: 13, fontFamily: 'inherit',
+            outline: 'none',
+          }}
+        />
+        <button
+          onClick={saveYouTubeUrl}
+          disabled={ytSaving || !ytUrl.trim()}
+          style={{
+            height: 46, borderRadius: 14, padding: '0 16px',
+            background: ytUrl.trim() ? 'rgba(255,0,0,0.18)' : 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,80,80,0.3)',
+            color: ytUrl.trim() ? '#ff6b6b' : C.muted,
+            fontWeight: 700, fontSize: 13, cursor: ytUrl.trim() ? 'pointer' : 'not-allowed',
+            fontFamily: 'inherit', whiteSpace: 'nowrap',
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}>
+          {/* YouTube icon */}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M23.5 6.2s-.3-2-1.2-2.8c-1.1-1.2-2.4-1.2-3-1.3C16.8 2 12 2 12 2s-4.8 0-7.3.1c-.6.1-1.9.1-3 1.3C.8 4.2.5 6.2.5 6.2S.2 8.5.2 10.8v2.1c0 2.3.3 4.6.3 4.6s.3 2 1.2 2.8c1.1 1.2 2.6 1.1 3.3 1.2C7.2 21.7 12 21.8 12 21.8s4.8 0 7.3-.2c.6-.1 1.9-.1 3-1.3.9-.8 1.2-2.8 1.2-2.8s.3-2.3.3-4.6v-2.1c0-2.3-.3-4.6-.3-4.6zM9.7 15.5V8.4l8.1 3.6-8.1 3.5z"/>
+          </svg>
+          {ytSaving ? '…' : 'Agregar'}
         </button>
       </div>
 
