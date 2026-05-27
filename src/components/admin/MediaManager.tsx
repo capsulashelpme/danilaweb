@@ -78,8 +78,9 @@ export function MediaManager() {
   const [loading,       setLoading]       = useState(false)
   const [uploading,     setUploading]     = useState(false)
   const [uploadPct,     setUploadPct]     = useState(0)
-  const [ytUrl,         setYtUrl]         = useState('')
-  const [ytSaving,      setYtSaving]      = useState(false)
+  const [urlInput,      setUrlInput]      = useState('')
+  const [urlType,       setUrlType]       = useState<'video' | 'image'>('video')
+  const [urlSaving,     setUrlSaving]     = useState(false)
   const [confirmDel,    setConfirmDel]    = useState<MediaAsset | null>(null)
   const [deleting,      setDeleting]      = useState(false)
   const [toast,         setToast]         = useState<{ ok: boolean; msg: string } | null>(null)
@@ -142,22 +143,22 @@ export function MediaManager() {
     load()
   }
 
-  const saveVideoUrl = async () => {
-    const url = ytUrl.trim()
+  const saveUrl = async () => {
+    const url = urlInput.trim()
     if (!url) return
     if (!url.startsWith('http')) {
       showToast(false, 'Pega una URL válida (debe iniciar con http)')
       return
     }
-    setYtSaving(true)
+    setUrlSaving(true)
     const maxIdx = allAssets.reduce((m, a) => Math.max(m, a.order_index), -1)
     const { error } = await supabase.from('media_assets').insert({
-      section: activeSection, type: 'video', url,
+      section: activeSection, type: urlType, url,
       storage_path: '', order_index: maxIdx + 1, is_active: true,
     })
-    setYtSaving(false)
+    setUrlSaving(false)
     if (error) { showToast(false, 'Error al guardar: ' + error.message) }
-    else { showToast(true, 'Video agregado ✓'); setYtUrl(''); load() }
+    else { showToast(true, `${urlType === 'video' ? 'Video' : 'Imagen'} agregado ✓`); setUrlInput(''); load() }
   }
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>, type: MediaType) => {
@@ -202,111 +203,123 @@ export function MediaManager() {
       )}
 
       {/* ── Section tabs ── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
         {SECTIONS.map(s => {
           const isActive = activeSection === s.id
           return (
             <button key={s.id} onClick={() => setActiveSection(s.id)}
               style={{
-                width: '100%', padding: '14px 16px', borderRadius: 16,
-                background: isActive ? `${C.orange}15` : C.card,
-                border: `1px solid ${isActive ? `${C.orange}40` : C.border}`,
-                color: isActive ? C.orange : '#fff',
-                display: 'flex', alignItems: 'center', gap: 12,
-                cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s', textAlign: 'left',
+                flex: 1, padding: '10px 4px', borderRadius: 14,
+                background: isActive ? `${C.orange}18` : C.card,
+                border: `1px solid ${isActive ? `${C.orange}50` : C.border}`,
+                color: isActive ? C.orange : C.muted,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+                cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s',
               }}
             >
-              <span style={{ fontSize: 20, flexShrink: 0 }}>{s.icon}</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em' }}>{s.label}</div>
-                <div style={{ fontSize: 11, color: isActive ? `${C.orange}80` : C.muted, marginTop: 2 }}>
-                  {isActive
-                    ? `${visible.length} visible${visible.length !== 1 ? 's' : ''} · ${hidden.length} oculto${hidden.length !== 1 ? 's' : ''}`
-                    : 'Toca para gestionar'
-                  }
-                </div>
-              </div>
+              <span style={{ fontSize: 18 }}>{s.icon}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.2, textAlign: 'center' }}>
+                {s.label.split(' / ')[0]}
+              </span>
               {isActive && (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0 }}><polyline points="9 18 15 12 9 6"/></svg>
+                <span style={{ fontSize: 9, color: `${C.orange}90`, fontWeight: 600 }}>
+                  {visible.length}v · {hidden.length}o
+                </span>
               )}
             </button>
           )
         })}
       </div>
 
-      {/* ── Upload buttons ── */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-        <input ref={imgRef} type="file" accept="image/*,.gif" style={{ display: 'none' }}
-          onChange={e => handleFile(e, 'image')} />
-        <input ref={vidRef} type="file" accept="video/*" style={{ display: 'none' }}
-          onChange={e => handleFile(e, 'video')} />
-        <button onClick={() => imgRef.current?.click()} disabled={uploading}
-          style={{
-            flex: 1, height: 46, borderRadius: 14,
-            border: '1px solid rgba(255,255,255,0.1)',
-            background: uploading ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.06)',
-            color: uploading ? C.muted : '#fff',
-            fontWeight: 700, fontSize: 13, cursor: uploading ? 'not-allowed' : 'pointer',
-            fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            transition: 'all .15s',
-          }}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
-            <polyline points="21 15 16 10 5 21"/>
-          </svg>
-          {uploading ? 'Subiendo…' : '+ Imagen'}
-        </button>
-        <button onClick={() => vidRef.current?.click()} disabled={uploading}
-          style={{
-            flex: 1, height: 46, borderRadius: 14,
-            border: '1px solid rgba(255,255,255,0.1)',
-            background: uploading ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.06)',
-            color: uploading ? C.muted : '#fff',
-            fontWeight: 700, fontSize: 13, cursor: uploading ? 'not-allowed' : 'pointer',
-            fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            transition: 'all .15s',
-          }}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-          </svg>
-          {uploading ? 'Subiendo…' : '+ Video'}
-        </button>
+      {/* ── Subir archivo ── */}
+      <input ref={imgRef} type="file" accept="image/*,.gif" style={{ display: 'none' }} onChange={e => handleFile(e, 'image')} />
+      <input ref={vidRef} type="file" accept="video/*" style={{ display: 'none' }} onChange={e => handleFile(e, 'video')} />
+
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 18, padding: '14px 14px 10px', marginBottom: 12 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: '0.09em', textTransform: 'uppercase', marginBottom: 10 }}>
+          Subir archivo
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => imgRef.current?.click()} disabled={uploading}
+            style={{
+              flex: 1, height: 42, borderRadius: 12,
+              border: '1px solid rgba(255,255,255,0.1)',
+              background: uploading ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
+              color: uploading ? C.muted : '#fff',
+              fontWeight: 700, fontSize: 12.5, cursor: uploading ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+            }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            Imagen
+          </button>
+          <button onClick={() => vidRef.current?.click()} disabled={uploading}
+            style={{
+              flex: 1, height: 42, borderRadius: 12,
+              border: '1px solid rgba(255,255,255,0.1)',
+              background: uploading ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
+              color: uploading ? C.muted : '#fff',
+              fontWeight: 700, fontSize: 12.5, cursor: uploading ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+            }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+            </svg>
+            Video
+          </button>
+        </div>
       </div>
 
-      {/* ── Link YouTube ── */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        <input
-          type="url"
-          placeholder="Pega URL de video (Drive, Dropbox, etc.)…"
-          value={ytUrl}
-          onChange={e => setYtUrl(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') saveVideoUrl() }}
-          style={{
-            flex: 1, height: 46, borderRadius: 14, padding: '0 14px',
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            color: '#fff', fontSize: 13, fontFamily: 'inherit',
-            outline: 'none',
-          }}
-        />
-        <button
-          onClick={saveVideoUrl}
-          disabled={ytSaving || !ytUrl.trim()}
-          style={{
-            height: 46, borderRadius: 14, padding: '0 16px',
-            background: ytUrl.trim() ? 'rgba(255,0,0,0.18)' : 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,80,80,0.3)',
-            color: ytUrl.trim() ? '#ff6b6b' : C.muted,
-            fontWeight: 700, fontSize: 13, cursor: ytUrl.trim() ? 'pointer' : 'not-allowed',
-            fontFamily: 'inherit', whiteSpace: 'nowrap',
-            display: 'flex', alignItems: 'center', gap: 6,
-          }}>
-          {/* YouTube icon */}
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M23.5 6.2s-.3-2-1.2-2.8c-1.1-1.2-2.4-1.2-3-1.3C16.8 2 12 2 12 2s-4.8 0-7.3.1c-.6.1-1.9.1-3 1.3C.8 4.2.5 6.2.5 6.2S.2 8.5.2 10.8v2.1c0 2.3.3 4.6.3 4.6s.3 2 1.2 2.8c1.1 1.2 2.6 1.1 3.3 1.2C7.2 21.7 12 21.8 12 21.8s4.8 0 7.3-.2c.6-.1 1.9-.1 3-1.3.9-.8 1.2-2.8 1.2-2.8s.3-2.3.3-4.6v-2.1c0-2.3-.3-4.6-.3-4.6zM9.7 15.5V8.4l8.1 3.6-8.1 3.5z"/>
-          </svg>
-          {ytSaving ? '…' : 'Agregar'}
-        </button>
+      {/* ── Agregar por URL ── */}
+      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 18, padding: '14px 14px 10px', marginBottom: 16 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: '0.09em', textTransform: 'uppercase', marginBottom: 10 }}>
+          Agregar por URL
+        </div>
+        {/* Tipo toggle */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+          {(['video', 'image'] as const).map(t => (
+            <button key={t} onClick={() => setUrlType(t)}
+              style={{
+                flex: 1, height: 32, borderRadius: 10,
+                background: urlType === t ? `${C.orange}18` : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${urlType === t ? `${C.orange}50` : C.border}`,
+                color: urlType === t ? C.orange : C.muted,
+                fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+              }}>
+              {t === 'video' ? '▶ Video' : '🖼 Imagen'}
+            </button>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            type="url"
+            placeholder={urlType === 'video' ? 'https://res.cloudinary.com/…/video.mp4' : 'https://res.cloudinary.com/…/foto.jpg'}
+            value={urlInput}
+            onChange={e => setUrlInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') saveUrl() }}
+            style={{
+              flex: 1, height: 42, borderRadius: 12, padding: '0 12px',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              color: '#fff', fontSize: 12.5, fontFamily: 'inherit', outline: 'none',
+            }}
+          />
+          <button
+            onClick={saveUrl}
+            disabled={urlSaving || !urlInput.trim()}
+            style={{
+              height: 42, borderRadius: 12, padding: '0 16px',
+              background: urlInput.trim() ? `${C.orange}20` : 'rgba(255,255,255,0.04)',
+              border: `1px solid ${urlInput.trim() ? `${C.orange}50` : C.border}`,
+              color: urlInput.trim() ? C.orange : C.muted,
+              fontWeight: 700, fontSize: 12.5, cursor: urlInput.trim() ? 'pointer' : 'not-allowed',
+              fontFamily: 'inherit', whiteSpace: 'nowrap',
+            }}>
+            {urlSaving ? '…' : 'Agregar'}
+          </button>
+        </div>
       </div>
 
       {/* ── Upload progress bar ── */}
