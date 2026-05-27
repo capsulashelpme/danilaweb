@@ -142,12 +142,11 @@ export function MediaManager() {
     load()
   }
 
-  const saveYouTubeUrl = async () => {
+  const saveVideoUrl = async () => {
     const url = ytUrl.trim()
     if (!url) return
-    // Validar que sea YouTube
-    if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
-      showToast(false, 'Pega un link de YouTube válido')
+    if (!url.startsWith('http')) {
+      showToast(false, 'Pega una URL válida (debe iniciar con http)')
       return
     }
     setYtSaving(true)
@@ -158,7 +157,7 @@ export function MediaManager() {
     })
     setYtSaving(false)
     if (error) { showToast(false, 'Error al guardar: ' + error.message) }
-    else { showToast(true, 'Video de YouTube agregado ✓'); setYtUrl(''); load() }
+    else { showToast(true, 'Video agregado ✓'); setYtUrl(''); load() }
   }
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>, type: MediaType) => {
@@ -278,10 +277,10 @@ export function MediaManager() {
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
         <input
           type="url"
-          placeholder="Pega link de YouTube…"
+          placeholder="Pega URL de video (Drive, Dropbox, etc.)…"
           value={ytUrl}
           onChange={e => setYtUrl(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') saveYouTubeUrl() }}
+          onKeyDown={e => { if (e.key === 'Enter') saveVideoUrl() }}
           style={{
             flex: 1, height: 46, borderRadius: 14, padding: '0 14px',
             background: 'rgba(255,255,255,0.05)',
@@ -291,7 +290,7 @@ export function MediaManager() {
           }}
         />
         <button
-          onClick={saveYouTubeUrl}
+          onClick={saveVideoUrl}
           disabled={ytSaving || !ytUrl.trim()}
           style={{
             height: 46, borderRadius: 14, padding: '0 16px',
