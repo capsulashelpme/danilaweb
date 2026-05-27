@@ -33,6 +33,9 @@ const IconHomeFilled = () => (
 
 const HERO_THRESHOLD = 200 // px — how far down before header hides
 
+// Persiste aunque el componente se remonte (auth load, etc.)
+let _dockEverVisible = false
+
 // ── Detección de fondo claro bajo el dock ─────────────────────
 function parseLuminance(color: string): number | null {
   const m = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/)
@@ -119,7 +122,7 @@ function DockDivider({ iconColor }: { iconColor: string }) {
 
 export function Topbar() {
   const { session, profile } = useAuth()
-  const [hidden, setHidden] = useState(false)
+  const [visible, setVisible] = useState(() => _dockEverVisible)
   const [loginOpacity, setLoginOpacity] = useState(1)
   const [isLight, setIsLight] = useState(false)
   const lastYRef = useRef(0)
@@ -141,8 +144,7 @@ export function Topbar() {
       const y = window.scrollY
       // Fade login button: fully visible at 0, gone at 160px
       setLoginOpacity(Math.max(0, 1 - y / 160))
-      if (y > lastYRef.current && y > HERO_THRESHOLD) setHidden(true)
-      else if (y < lastYRef.current) setHidden(false)
+      if (y > HERO_THRESHOLD && !_dockEverVisible) { _dockEverVisible = true; setVisible(true) }
       lastYRef.current = y
       // Detectar si el dock está sobre fondo claro
       setIsLight(isDockOverLight(dockRef.current))
@@ -200,10 +202,10 @@ export function Topbar() {
           position: 'fixed',
           bottom: 32,
           left: '50%',
-          transform: `translateX(-50%) translateY(${hidden ? '0' : '120px'})`,
+          transform: `translateX(-50%) translateY(${visible ? '0' : '120px'})`,
           zIndex: 60,
-          opacity: hidden ? 1 : 0,
-          pointerEvents: hidden ? 'auto' : 'none',
+          opacity: visible ? 1 : 0,
+          pointerEvents: visible ? 'auto' : 'none',
           transition: 'transform .45s cubic-bezier(.34,1.56,.64,1), opacity .3s ease',
           display: 'flex',
           alignItems: 'center',
