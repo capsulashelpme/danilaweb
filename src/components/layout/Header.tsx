@@ -47,8 +47,9 @@ export function Header() {
         {/* Desktop CTA */}
         <motion.a
           href="#contacto"
-          whileHover={{ scale: 1.03 }}
+          whileHover={{ scale: 1.04, y: -2 }}
           whileTap={{ scale: 0.97 }}
+          transition={{ type: 'spring', duration: 0.3, bounce: 0.2 }}
           className="hidden md:flex items-center bg-brand-orange hover:bg-brand-orange-light text-white text-sm font-semibold px-5 py-2 rounded-full transition-colors"
         >
           Hablemos

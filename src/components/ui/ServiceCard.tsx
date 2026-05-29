@@ -9,9 +9,10 @@ interface Props {
 export function ServiceCard({ service }: Props) {
   return (
     <motion.div
-      whileHover={{ y: -4, borderColor: '#FF5A1F' }}
-      transition={{ duration: 0.2 }}
-      className="bg-brand-card border border-brand-border rounded-2xl p-6 flex flex-col gap-4"
+      whileHover={{ y: -4, scale: 1.01 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', duration: 0.3, bounce: 0.18 }}
+      className="bg-brand-card border border-brand-border rounded-2xl p-6 flex flex-col gap-4 hover:border-brand-orange/40 transition-colors duration-200"
     >
       <div className="w-11 h-11 rounded-xl bg-brand-orange/10 flex items-center justify-center text-brand-orange">
         <DynamicIcon name={service.icon} size={20} />

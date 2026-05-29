@@ -8,8 +8,9 @@ interface Props {
 export function ProjectCard({ project }: Props) {
   return (
     <motion.div
-      whileHover={{ scale: 1.02 }}
-      transition={{ duration: 0.2 }}
+      whileHover={{ scale: 1.02, y: -4 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', duration: 0.3, bounce: 0.2 }}
       className="bg-brand-card border border-brand-border rounded-2xl overflow-hidden group cursor-pointer"
     >
       <div className={`relative h-44 bg-gradient-to-br ${project.gradient} flex items-end p-4`}>

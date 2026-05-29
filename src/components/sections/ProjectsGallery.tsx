@@ -27,7 +27,8 @@ export function ProjectsGallery() {
             <AnimatedSection key={p.id} delay={i * 0.09} className={i % 2 === 1 ? 'lg:mt-8' : ''}>
               <motion.div
                 whileHover={{ scale: 1.02, y: -4 }}
-                transition={{ duration: 0.22 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ type: 'spring', duration: 0.3, bounce: 0.15 }}
                 className="group bg-brand-card border border-brand-border rounded-3xl overflow-hidden cursor-pointer"
               >
                 {/* Visual placeholder */}

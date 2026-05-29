@@ -62,8 +62,9 @@ export function DynamicRoute({ selectedId }: Props) {
                 </ul>
                 <motion.a
                   href={content.ctaHref}
-                  whileHover={{ scale: 1.03 }}
+                  whileHover={{ scale: 1.04, y: -2 }}
                   whileTap={{ scale: 0.97 }}
+                  transition={{ type: 'spring', duration: 0.3, bounce: 0.2 }}
                   className="inline-flex items-center gap-2 bg-brand-orange hover:bg-brand-orange-light text-white font-semibold px-6 py-3 rounded-full text-sm transition-colors"
                 >
                   {content.ctaLabel}

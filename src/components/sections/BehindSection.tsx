@@ -63,8 +63,9 @@ export function BehindSection() {
                 href={WA_LINK}
                 target="_blank"
                 rel="noopener noreferrer"
-                whileHover={{ scale: 1.03 }}
+                whileHover={{ scale: 1.04, y: -2 }}
                 whileTap={{ scale: 0.97 }}
+                transition={{ type: 'spring', duration: 0.3, bounce: 0.2 }}
                 className="inline-flex items-center gap-2 bg-white text-black font-bold text-sm px-6 py-3 rounded-full hover:bg-brand-text/90 transition-colors"
               >
                 Hablemos
@@ -80,7 +81,8 @@ export function BehindSection() {
             <AnimatedSection key={card.id} delay={i * 0.12}>
               <motion.div
                 whileHover={{ scale: 1.02, y: -4 }}
-                transition={{ duration: 0.25 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ type: 'spring', duration: 0.3, bounce: 0.15 }}
                 className="group relative bg-brand-card rounded-3xl overflow-hidden cursor-pointer"
                 style={{ minHeight: '320px' }}
               >

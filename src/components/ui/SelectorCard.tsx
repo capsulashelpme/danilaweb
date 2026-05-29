@@ -12,8 +12,9 @@ export function SelectorCard({ option, isSelected, onSelect }: Props) {
   return (
     <motion.button
       onClick={onSelect}
-      whileHover={{ scale: 1.02 }}
+      whileHover={{ scale: 1.02, y: -2 }}
       whileTap={{ scale: 0.97 }}
+      transition={{ type: 'spring', duration: 0.3, bounce: 0.15 }}
       className={`relative w-full text-left p-5 rounded-2xl border transition-all duration-200 cursor-pointer ${
         isSelected
           ? 'border-brand-orange bg-brand-orange/10 glow-orange'
