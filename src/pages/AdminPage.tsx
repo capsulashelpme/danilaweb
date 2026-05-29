@@ -255,7 +255,7 @@ export function AdminPage() {
   const load = async () => {
     setLoading(true)
     const { data: profiles } = await supabase
-      .from('profiles').select('id, full_name, business_name, username, created_at, payment_status, service_start_date, service_end_date')
+      .from('profiles').select('id, full_name, business_name, username, display_name, created_at, payment_status, service_start_date, service_end_date')
       .eq('is_admin', false).order('created_at', { ascending: false })
 
     const { data: accounts } = await supabase
@@ -303,7 +303,7 @@ export function AdminPage() {
     rows.forEach(r => {
       m[r.id] = {
         act:              r.meta_ad_account_id ?? '',
-        label:            r.label ?? r.business_name ?? '',
+        label:            (r as any).display_name ?? r.label ?? r.business_name ?? '',
         sales:            r.total_sales?.toString() ?? '',
         notes:            r.internal_notes ?? '',
         serviceStartDate: r.service_start_date ?? '',
@@ -340,14 +340,16 @@ export function AdminPage() {
     return () => { supabase.removeChannel(ch) }
   }, [])
 
-  // ── Guardar TODO: username + cuenta + campos de cliente ───────
+  // ── Guardar TODO: username + nombre saludo + cuenta + campos de cliente ──
   const saveAll = async (id: string) => {
     setSaving(id)
     const client = clients.find(c => c.id === id)
     const { act, label, sales, notes } = editMap[id] ?? {}
 
-    // 1. Guardar @username si tiene valor
+    // 1. Guardar @username y display_name en profiles (siempre, independiente de cuenta Meta)
     const raw = (editMap[id]?.username ?? '').trim().replace(/^@/, '').toLowerCase().replace(/[^a-z0-9_.]/g, '')
+    const labelTrimmed = (label ?? '').trim() || null
+
     if (raw) {
       const { data: existing } = await supabase
         .from('profiles').select('id').ilike('username', raw).neq('id', id).maybeSingle()
@@ -356,20 +358,25 @@ export function AdminPage() {
         toast(false, `@${raw} ya está en uso por otro cliente`)
         return
       }
-      const { error: ue } = await supabase.from('profiles').update({ username: raw }).eq('id', id)
-      if (ue) { setSaving(null); toast(false, ue.message); return }
-      setClients(prev => prev.map(c => c.id === id ? { ...c, username: raw } : c))
     }
 
-    // 2. Guardar client_ad_accounts
+    // Actualizar profiles: username (si hay) + display_name (siempre)
+    const profilePatch: Record<string, unknown> = { display_name: labelTrimmed }
+    if (raw) profilePatch.username = raw
+
+    const { error: pe } = await supabase.from('profiles').update(profilePatch).eq('id', id)
+    if (pe) { setSaving(null); toast(false, pe.message); return }
+    if (raw) setClients(prev => prev.map(c => c.id === id ? { ...c, username: raw } : c))
+
+    // 2. Guardar client_ad_accounts (solo si hay cuenta Meta o se está ingresando una)
     const actTrimmed = (act ?? '').trim()
     const hasAccount = !!client?.meta_ad_account_id
 
-    // Si no hay cuenta y no hay act_id escrito, solo guardamos el username
     if (!hasAccount && !actTrimmed) {
+      // No hay cuenta Meta y no se está agregando una — solo guardamos lo de profiles
       setSaving(null)
-      if (raw) toast(true, 'Cambios guardados correctamente')
-      else toast(false, 'Ingresa el Ad Account ID para guardar')
+      toast(true, 'Cambios guardados correctamente')
+      load()
       return
     }
 
@@ -379,7 +386,7 @@ export function AdminPage() {
 
     const { error } = await supabase.from('client_ad_accounts').upsert({
       profile_id: id, meta_ad_account_id: norm,
-      label: (label ?? '').trim() || null, active: true,
+      label: labelTrimmed, active: true,
       assigned_by: profile?.id,
       total_sales: parseFloat(sales ?? '') || 0,
       sales_updated_by: 'admin',

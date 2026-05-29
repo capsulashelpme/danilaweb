@@ -484,13 +484,22 @@ export function DashboardPage() {
       const uid = session.user.id
 
       // ── Carga inicial ─────────────────────────────────────────
+      // display_name viene de profiles (fuente de verdad del saludo)
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', uid)
+        .maybeSingle()
+      if (prof && mounted && prof.display_name) setLabel(prof.display_name)
+
       const { data: acc } = await supabase
         .from('client_ad_accounts')
         .select('label, total_sales, sales_updated_by, sales_updated_at, service_start_date, service_end_date, payment_status, meta_ad_account_id')
         .eq('profile_id', uid)
         .maybeSingle()
       if (acc && mounted) {
-        setLabel(acc.label)
+        // Solo usar label de client_ad_accounts como fallback si no hay display_name
+        if (!prof?.display_name && acc.label) setLabel(acc.label)
         setSales(acc.total_sales ?? 0)
         setServiceStartDate(acc.service_start_date ?? null)
         setServiceEndDate(acc.service_end_date ?? null)
@@ -522,8 +531,21 @@ export function DashboardPage() {
               setServiceStartDate((row.service_start_date as string | null) ?? null)
             if (row.service_end_date !== undefined)
               setServiceEndDate((row.service_end_date as string | null) ?? null)
-            if (row.label) setLabel(row.label as string)
             if (row.meta_ad_account_id) setHasMetaAccount(true)
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'profiles',
+            filter: `id=eq.${uid}`,
+          },
+          (payload) => {
+            if (!mounted) return
+            const row = payload.new as Record<string, unknown>
+            if (row.display_name !== undefined) setLabel((row.display_name as string | null) ?? null)
           }
         )
         .subscribe()
