@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { supabase } from '@/lib/supabase'
@@ -148,15 +149,19 @@ function Badge({ status }: { status: ClientStatus }) {
 // ── Stat card ──────────────────────────────────────────────────
 function StatCard({ n, label, color, icon, wide = false }: { n: string | number; label: string; color: string; icon: React.ReactNode; wide?: boolean }) {
   return (
-    <div style={{
-      gridColumn: wide ? '1 / -1' : undefined,
-      borderRadius: 24, padding: wide ? '24px 26px' : '20px 22px',
-      background: 'rgba(255,255,255,0.04)',
-      border: '1px solid rgba(255,255,255,0.055)',
-      display: 'flex', flexDirection: 'column', gap: 0,
-      position: 'relative', overflow: 'hidden',
-    }}>
-      {/* Subtle color hint top-right */}
+    <motion.div
+      whileHover={{ y: -3, scale: 1.02, boxShadow: `0 12px 40px rgba(0,0,0,0.35), 0 0 0 1px ${color}20` }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', duration: 0.3, bounce: 0.18 }}
+      style={{
+        gridColumn: wide ? '1 / -1' : undefined,
+        borderRadius: 24, padding: wide ? '24px 26px' : '20px 22px',
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.055)',
+        display: 'flex', flexDirection: 'column', gap: 0,
+        position: 'relative', overflow: 'hidden',
+        cursor: 'default',
+      }}>
       <div style={{ position: 'absolute', top: 16, right: 16, color, opacity: 0.55 }}>{icon}</div>
       <div style={{
         fontFamily: '-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif',
@@ -165,18 +170,22 @@ function StatCard({ n, label, color, icon, wide = false }: { n: string | number;
         marginBottom: 6,
       }}>{n}</div>
       <div style={{ fontSize: 12, color: C.muted, fontWeight: 500 }}>{label}</div>
-    </div>
+    </motion.div>
   )
 }
 
 // ── Performance card ───────────────────────────────────────────
 function PerfCard({ label, value, icon, color }: { label: string; value: string; icon: React.ReactNode; color: string }) {
   return (
-    <div style={{ borderRadius: 22, padding: '20px 20px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.055)', position: 'relative', overflow: 'hidden' }}>
+    <motion.div
+      whileHover={{ y: -3, boxShadow: `0 10px 32px rgba(0,0,0,0.3), 0 0 0 1px ${color}22` }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', duration: 0.3, bounce: 0.15 }}
+      style={{ borderRadius: 22, padding: '20px 20px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.055)', position: 'relative', overflow: 'hidden', cursor: 'default' }}>
       <div style={{ position: 'absolute', top: 14, right: 14, color, opacity: 0.55 }}>{icon}</div>
       <div style={{ fontFamily: '-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif', fontSize: 26, fontWeight: 800, letterSpacing: '-0.03em', color: '#fff', lineHeight: 1, marginBottom: 6 }}>{value}</div>
       <div style={{ fontSize: 11.5, color: C.muted, fontWeight: 500 }}>{label}</div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -588,10 +597,12 @@ export function AdminPage() {
           const isActive = tab === t.id
           const pending  = t.id === 'opinions' ? testimonials.filter(x => x.status === 'pending').length : 0
           return (
-            <button
+            <motion.button
               key={t.id}
               onClick={() => setTab(t.id)}
               aria-label={t.label}
+              whileTap={{ scale: 0.88 }}
+              transition={{ type: 'spring', duration: 0.2, bounce: 0.35 }}
               style={{
                 position: 'relative',
                 height: 44, padding: '0 14px', borderRadius: 999,
@@ -606,31 +617,33 @@ export function AdminPage() {
               onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.55)' }}
             >
               {t.icon}
-              <span style={{ display: 'none' /* label solo para ARIA */ }}>{t.label}</span>
+              <span style={{ display: 'none' }}>{t.label}</span>
               {pending > 0 && (
                 <span style={{ position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: '50%', background: C.orange, border: '1.5px solid rgba(6,6,6,0.9)' }} />
               )}
-            </button>
+            </motion.button>
           )
         })}
 
         <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.1)', margin: '0 2px' }} />
 
         {/* Sync */}
-        <button onClick={syncNow} disabled={syncing} aria-label="Sincronizar"
+        <motion.button onClick={syncNow} disabled={syncing} aria-label="Sincronizar"
+          whileTap={{ scale: 0.86 }} transition={{ type: 'spring', duration: 0.2, bounce: 0.35 }}
           style={{ width: 44, height: 44, borderRadius: '50%', background: 'none', border: 'none', color: syncing ? C.orange : 'rgba(255,255,255,0.55)', cursor: syncing ? 'wait' : 'pointer', display: 'grid', placeItems: 'center', transition: 'color .15s' }}
           onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = C.orange }}
           onMouseLeave={e => { if (!syncing) (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.55)' }}>
           {syncing ? <Ico.spin /> : <Ico.sync />}
-        </button>
+        </motion.button>
 
         {/* Salir */}
-        <button onClick={() => setShowLogoutConfirm(true)} aria-label="Salir"
+        <motion.button onClick={() => setShowLogoutConfirm(true)} aria-label="Salir"
+          whileTap={{ scale: 0.86 }} transition={{ type: 'spring', duration: 0.2, bounce: 0.35 }}
           style={{ width: 44, height: 44, borderRadius: '50%', background: 'none', border: 'none', color: 'rgba(255,80,80,0.55)', cursor: 'pointer', display: 'grid', placeItems: 'center', transition: 'color .15s' }}
           onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#FF5050' }}
           onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,80,80,0.55)' }}>
           <Ico.logout />
-        </button>
+        </motion.button>
       </nav>
 
       <main style={{ maxWidth: 480, margin: '0 auto', padding: '0 20px 120px', position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -856,21 +869,24 @@ export function AdminPage() {
                     <p style={{ fontSize: 13, color: '#ccc', lineHeight: 1.5, margin: '0 0 14px' }}>"{t.text}"</p>
                     <div style={{ display: 'flex', gap: 8 }}>
                       {t.status !== 'approved' && (
-                        <button disabled={isBusy} onClick={() => updateTestimonialStatus(t.id, 'approved')}
-                          style={{ flex: 1, padding: '8px', borderRadius: 10, border: 'none', cursor: 'pointer', background: `${C.green}18`, color: C.green, fontWeight: 600, fontSize: 12.5, opacity: isBusy ? 0.5 : 1 }}>
+                        <motion.button whileTap={{ scale: 0.95 }} transition={{ type: 'spring', duration: 0.18, bounce: 0.3 }}
+                          disabled={isBusy} onClick={() => updateTestimonialStatus(t.id, 'approved')}
+                          style={{ flex: 1, padding: '8px', borderRadius: 10, border: 'none', cursor: 'pointer', background: `${C.green}18`, color: C.green, fontWeight: 600, fontSize: 12.5, opacity: isBusy ? 0.5 : 1, fontFamily: 'inherit' }}>
                           ✓ Aprobar
-                        </button>
+                        </motion.button>
                       )}
                       {t.status !== 'rejected' && (
-                        <button disabled={isBusy} onClick={() => updateTestimonialStatus(t.id, 'rejected')}
-                          style={{ flex: 1, padding: '8px', borderRadius: 10, border: 'none', cursor: 'pointer', background: `${C.red}18`, color: C.red, fontWeight: 600, fontSize: 12.5, opacity: isBusy ? 0.5 : 1 }}>
+                        <motion.button whileTap={{ scale: 0.95 }} transition={{ type: 'spring', duration: 0.18, bounce: 0.3 }}
+                          disabled={isBusy} onClick={() => updateTestimonialStatus(t.id, 'rejected')}
+                          style={{ flex: 1, padding: '8px', borderRadius: 10, border: 'none', cursor: 'pointer', background: `${C.red}18`, color: C.red, fontWeight: 600, fontSize: 12.5, opacity: isBusy ? 0.5 : 1, fontFamily: 'inherit' }}>
                           ✕ Rechazar
-                        </button>
+                        </motion.button>
                       )}
-                      <button disabled={isBusy} onClick={() => deleteTestimonial(t.id)}
-                        style={{ padding: '8px 14px', borderRadius: 10, border: `1px solid ${C.border}`, cursor: 'pointer', background: 'transparent', color: C.muted, fontWeight: 600, fontSize: 12.5, opacity: isBusy ? 0.5 : 1 }}>
+                      <motion.button whileTap={{ scale: 0.95 }} transition={{ type: 'spring', duration: 0.18, bounce: 0.3 }}
+                        disabled={isBusy} onClick={() => deleteTestimonial(t.id)}
+                        style={{ padding: '8px 14px', borderRadius: 10, border: `1px solid ${C.border}`, cursor: 'pointer', background: 'transparent', color: C.muted, fontWeight: 600, fontSize: 12.5, opacity: isBusy ? 0.5 : 1, fontFamily: 'inherit' }}>
                         Eliminar
-                      </button>
+                      </motion.button>
                     </div>
                   </div>
                 )
@@ -907,74 +923,107 @@ export function AdminPage() {
       </main>
 
       {/* ── Toast notification (top-center, iOS style) ── */}
-      {flash && (
-        <div style={{
-          position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)',
-          zIndex: 300,
-          display: 'flex', alignItems: 'center', gap: 9,
-          padding: '11px 16px',
-          borderRadius: 100,
-          background: flash.ok ? 'rgba(15,30,18,0.92)' : 'rgba(30,10,10,0.92)',
-          border: `1px solid ${flash.ok ? 'rgba(48,209,88,0.25)' : 'rgba(255,69,58,0.25)'}`,
-          color: flash.ok ? C.green : C.red,
-          fontSize: 13, fontWeight: 600,
-          backdropFilter: 'blur(20px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-          boxShadow: `0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px ${flash.ok ? 'rgba(48,209,88,0.08)' : 'rgba(255,69,58,0.08)'}`,
-          whiteSpace: 'nowrap', maxWidth: '90vw',
-          animation: 'adm-toast-in .25s cubic-bezier(0.34,1.56,0.64,1)',
-        }}>
-          <span style={{ display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-            {flash.ok ? <Ico.check /> : <Ico.warn />}
-          </span>
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{flash.msg}</span>
-          <button onClick={() => setFlash(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: 18, lineHeight: 1, opacity: 0.5, padding: '0 0 0 4px', flexShrink: 0 }}>×</button>
-        </div>
-      )}
+      <AnimatePresence>
+        {flash && (
+          <motion.div
+            key={flash.msg}
+            initial={{ opacity: 0, y: -16, scale: 0.9, x: '-50%' }}
+            animate={{ opacity: 1, y: 0,   scale: 1,   x: '-50%' }}
+            exit={{    opacity: 0, y: -10,  scale: 0.94,x: '-50%' }}
+            transition={{ type: 'spring', duration: 0.35, bounce: 0.3 }}
+            style={{
+              position: 'fixed', top: 20, left: '50%',
+              zIndex: 300,
+              display: 'flex', alignItems: 'center', gap: 9,
+              padding: '11px 16px',
+              borderRadius: 100,
+              background: flash.ok ? 'rgba(15,30,18,0.92)' : 'rgba(30,10,10,0.92)',
+              border: `1px solid ${flash.ok ? 'rgba(48,209,88,0.25)' : 'rgba(255,69,58,0.25)'}`,
+              color: flash.ok ? C.green : C.red,
+              fontSize: 13, fontWeight: 600,
+              backdropFilter: 'blur(20px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+              boxShadow: `0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px ${flash.ok ? 'rgba(48,209,88,0.08)' : 'rgba(255,69,58,0.08)'}`,
+              whiteSpace: 'nowrap', maxWidth: '90vw',
+            }}>
+            <span style={{ display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+              {flash.ok ? <Ico.check /> : <Ico.warn />}
+            </span>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{flash.msg}</span>
+            <button onClick={() => setFlash(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: 18, lineHeight: 1, opacity: 0.5, padding: '0 0 0 4px', flexShrink: 0 }}>×</button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Confirm delete modal ── */}
-      {confirmDelete && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}>
-          <div style={{ width: '100%', maxWidth: 360, borderRadius: 24, background: '#1A1A1A', border: `1px solid ${C.border}`, padding: '28px 24px', boxShadow: '0 24px 64px rgba(0,0,0,0.6)' }}>
-            <div style={{ width: 48, height: 48, borderRadius: 14, background: `${C.red}15`, display: 'grid', placeItems: 'center', marginBottom: 16 }}>
-              <Ico.trash />
-            </div>
-            <div style={{ fontWeight: 700, fontSize: 17, letterSpacing: '-0.01em', marginBottom: 8 }}>¿Eliminar cliente?</div>
-            <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.55, marginBottom: 24 }}>
-              Se eliminará <strong style={{ color: '#fff' }}>{confirmDelete.name}</strong> junto con todas sus métricas, cuenta publicitaria y datos asociados.<br />
-              <span style={{ color: C.red }}>Esta acción no se puede deshacer.</span>
-            </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setConfirmDelete(null)} style={{ flex: 1, height: 46, borderRadius: 14, border: `1px solid ${C.border}`, background: C.cardHi, color: C.muted, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
-                Cancelar
-              </button>
-              <button onClick={deleteClient} disabled={deleting} style={{ flex: 1, height: 46, borderRadius: 14, border: 'none', background: deleting ? `${C.red}55` : C.red, color: '#fff', fontWeight: 700, fontSize: 14, cursor: deleting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                {deleting ? <><Ico.spin />Eliminando…</> : 'Eliminar cliente'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {confirmDelete && (
+          <motion.div
+            key="confirm-delete-backdrop"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 16 }}
+              animate={{ opacity: 1, scale: 1,    y: 0  }}
+              exit={{    opacity: 0, scale: 0.94,  y: 8  }}
+              transition={{ type: 'spring', duration: 0.38, bounce: 0.22 }}
+              style={{ width: '100%', maxWidth: 360, borderRadius: 24, background: '#1A1A1A', border: `1px solid ${C.border}`, padding: '28px 24px', boxShadow: '0 24px 64px rgba(0,0,0,0.6)' }}>
+              <div style={{ width: 48, height: 48, borderRadius: 14, background: `${C.red}15`, display: 'grid', placeItems: 'center', marginBottom: 16 }}>
+                <Ico.trash />
+              </div>
+              <div style={{ fontWeight: 700, fontSize: 17, letterSpacing: '-0.01em', marginBottom: 8 }}>¿Eliminar cliente?</div>
+              <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.55, marginBottom: 24 }}>
+                Se eliminará <strong style={{ color: '#fff' }}>{confirmDelete.name}</strong> junto con todas sus métricas, cuenta publicitaria y datos asociados.<br />
+                <span style={{ color: C.red }}>Esta acción no se puede deshacer.</span>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <motion.button whileTap={{ scale: 0.96 }} transition={{ type: 'spring', duration: 0.2, bounce: 0.2 }}
+                  onClick={() => setConfirmDelete(null)} style={{ flex: 1, height: 46, borderRadius: 14, border: `1px solid ${C.border}`, background: C.cardHi, color: C.muted, fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  Cancelar
+                </motion.button>
+                <motion.button whileTap={{ scale: 0.96 }} transition={{ type: 'spring', duration: 0.2, bounce: 0.2 }}
+                  onClick={deleteClient} disabled={deleting} style={{ flex: 1, height: 46, borderRadius: 14, border: 'none', background: deleting ? `${C.red}55` : C.red, color: '#fff', fontWeight: 700, fontSize: 14, cursor: deleting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontFamily: 'inherit' }}>
+                  {deleting ? <><Ico.spin />Eliminando…</> : 'Eliminar cliente'}
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Logout confirm modal ── */}
-      {showLogoutConfirm && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}>
-          <div style={{ width: '100%', maxWidth: 340, borderRadius: 24, background: '#1A1A1A', border: `1px solid ${C.border}`, padding: '28px 24px', boxShadow: '0 24px 64px rgba(0,0,0,0.6)', animation: 'adm-overlay-in .2s ease both' }}>
-            <div style={{ fontWeight: 700, fontSize: 17, letterSpacing: '-0.01em', marginBottom: 8 }}>¿Cerrar sesión?</div>
-            <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.55, marginBottom: 24 }}>
-              Tu sesión se cerrará en este dispositivo.
-            </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setShowLogoutConfirm(false)} style={{ flex: 1, height: 46, borderRadius: 14, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.04)', color: C.muted, fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
-                Cancelar
-              </button>
-              <button onClick={async () => { setShowLogoutConfirm(false); await signOut(); navigate('/') }} style={{ flex: 1, height: 46, borderRadius: 14, border: 'none', background: 'rgba(255,69,58,0.85)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
-                Cerrar sesión
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {showLogoutConfirm && (
+          <motion.div
+            key="logout-backdrop"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            style={{ position: 'fixed', inset: 0, zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 16 }}
+              animate={{ opacity: 1, scale: 1,    y: 0  }}
+              exit={{    opacity: 0, scale: 0.94,  y: 8  }}
+              transition={{ type: 'spring', duration: 0.35, bounce: 0.22 }}
+              style={{ width: '100%', maxWidth: 340, borderRadius: 24, background: '#1A1A1A', border: `1px solid ${C.border}`, padding: '28px 24px', boxShadow: '0 24px 64px rgba(0,0,0,0.6)' }}>
+              <div style={{ fontWeight: 700, fontSize: 17, letterSpacing: '-0.01em', marginBottom: 8 }}>¿Cerrar sesión?</div>
+              <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.55, marginBottom: 24 }}>
+                Tu sesión se cerrará en este dispositivo.
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <motion.button whileTap={{ scale: 0.96 }} transition={{ type: 'spring', duration: 0.2, bounce: 0.2 }}
+                  onClick={() => setShowLogoutConfirm(false)} style={{ flex: 1, height: 46, borderRadius: 14, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.04)', color: C.muted, fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  Cancelar
+                </motion.button>
+                <motion.button whileTap={{ scale: 0.96 }} transition={{ type: 'spring', duration: 0.2, bounce: 0.2 }}
+                  onClick={async () => { setShowLogoutConfirm(false); await signOut(); navigate('/') }} style={{ flex: 1, height: 46, borderRadius: 14, border: 'none', background: 'rgba(255,69,58,0.85)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  Cerrar sesión
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <style>{`
         @keyframes adm-spin       { to { transform:rotate(360deg) } }

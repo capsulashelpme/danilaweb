@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { useMetrics } from '@/hooks/useMetrics'
@@ -93,13 +94,18 @@ function KpiCard({ sub, value, format, accent, icon, loading, delay = 0 }: {
   icon: React.ReactNode; loading?: boolean; delay?: number
 }) {
   return (
-    <div style={{
-      borderRadius: 24, padding: '20px 22px',
-      background: 'rgba(255,255,255,0.04)',
-      border: '1px solid rgba(255,255,255,0.055)',
-      position: 'relative', overflow: 'hidden', minWidth: 0,
-      animation: `fadeUp .45s cubic-bezier(.22,1,.36,1) ${delay}s both`,
-    }}>
+    <motion.div
+      whileHover={{ y: -3, scale: 1.02, boxShadow: `0 12px 40px rgba(0,0,0,0.35), 0 0 0 1px ${accent}22` }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', duration: 0.3, bounce: 0.18 }}
+      style={{
+        borderRadius: 24, padding: '20px 22px',
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.055)',
+        position: 'relative', overflow: 'hidden', minWidth: 0,
+        animation: `fadeUp .45s cubic-bezier(.22,1,.36,1) ${delay}s both`,
+        cursor: 'default',
+      }}>
       {/* Ícono arriba-derecha, sutil */}
       <div style={{ position: 'absolute', top: 16, right: 16, color: accent, opacity: 0.55 }}>{icon}</div>
       {/* Número protagonista */}
@@ -112,7 +118,7 @@ function KpiCard({ sub, value, format, accent, icon, loading, delay = 0 }: {
       )}
       {/* Label abajo */}
       <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.32)', fontWeight: 500 }}>{sub}</div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -127,14 +133,18 @@ function RoiPanel({ spend, sales }: { spend: number; sales: number }) {
   const bars   = [40, 55, 45, 70, 60, 85, pct].map(h => Math.max(h, 8))
 
   return (
-    <div style={{
-      borderRadius: 20, overflow: 'hidden', position: 'relative',
-      background: good
-        ? 'linear-gradient(135deg, rgba(52,199,89,0.1) 0%, rgba(255,255,255,0.04) 60%)'
-        : 'linear-gradient(135deg, rgba(255,69,58,0.1) 0%, rgba(255,255,255,0.04) 60%)',
-      border: `1px solid ${good ? 'rgba(52,199,89,0.2)' : 'rgba(255,69,58,0.2)'}`,
-      animation: 'fadeUp .45s cubic-bezier(.22,1,.36,1) .3s both',
-    }}>
+    <motion.div
+      whileHover={{ scale: 1.008, boxShadow: good ? '0 16px 48px rgba(52,199,89,0.12)' : '0 16px 48px rgba(255,69,58,0.12)' }}
+      transition={{ type: 'spring', duration: 0.35, bounce: 0.12 }}
+      style={{
+        borderRadius: 20, overflow: 'hidden', position: 'relative',
+        background: good
+          ? 'linear-gradient(135deg, rgba(52,199,89,0.1) 0%, rgba(255,255,255,0.04) 60%)'
+          : 'linear-gradient(135deg, rgba(255,69,58,0.1) 0%, rgba(255,255,255,0.04) 60%)',
+        border: `1px solid ${good ? 'rgba(52,199,89,0.2)' : 'rgba(255,69,58,0.2)'}`,
+        animation: 'fadeUp .45s cubic-bezier(.22,1,.36,1) .3s both',
+        cursor: 'default',
+      }}>
       {/* Animated ambient glow */}
       <div className={good ? 'roi-glow-green' : 'roi-glow-red'} />
 
@@ -189,7 +199,7 @@ function RoiPanel({ spend, sales }: { spend: number; sales: number }) {
           ))}
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -213,15 +223,18 @@ function sortCampaigns(
 
 // ── Campaign Row ───────────────────────────────────────────────
 function CampaignRow({ c, i }: { c: ReturnType<typeof useMetrics>['data']['campaigns'][0]; i: number }) {
-  // manual_status tiene prioridad sobre el valor del sync (effective_status)
   const isActive = (c.manual_status ?? c.effective_status) === 'ACTIVE'
 
   return (
-    <div style={{
-      padding: '14px 16px',
-      display: 'flex', alignItems: 'center', gap: 12,
-      animation: `fadeUp .4s cubic-bezier(.22,1,.36,1) ${0.04 + i * 0.05}s both`,
-    }}>
+    <motion.div
+      whileHover={{ backgroundColor: 'rgba(255,255,255,0.025)' }}
+      transition={{ duration: 0.18 }}
+      style={{
+        padding: '14px 16px',
+        display: 'flex', alignItems: 'center', gap: 12,
+        borderRadius: 12,
+        animation: `fadeUp .4s cubic-bezier(.22,1,.36,1) ${0.04 + i * 0.05}s both`,
+      }}>
       {/* Status circle */}
       <div style={{ width: 36, height: 36, borderRadius: 11, background: isActive ? 'rgba(52,199,89,0.1)' : 'rgba(255,255,255,0.06)', display: 'grid', placeItems: 'center', flexShrink: 0, position: 'relative' }}>
         <div style={{
@@ -254,25 +267,29 @@ function CampaignRow({ c, i }: { c: ReturnType<typeof useMetrics>['data']['campa
         <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,159,10,1)', fontFamily: '-apple-system,BlinkMacSystemFont,sans-serif' }}>{fx(c.spend)}</span>
         <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{fn(c.results)} mensajes</span>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
 // ── Sort chip ──────────────────────────────────────────────────
 function SortChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
-    <button
+    <motion.button
       onClick={onClick}
       className="sort-chip"
+      whileHover={{ scale: 1.04 }}
+      whileTap={{ scale: 0.92 }}
+      transition={{ type: 'spring', duration: 0.22, bounce: 0.35 }}
       style={{
         padding: '6px 14px', borderRadius: 100, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
         background: active ? 'rgba(255,159,10,1)' : 'rgba(255,255,255,0.07)',
         color: active ? '#000' : 'rgba(255,255,255,0.5)',
         transition: 'background .15s, color .15s',
+        fontFamily: 'inherit',
       }}
     >
       {label}
-    </button>
+    </motion.button>
   )
 }
 
@@ -409,18 +426,20 @@ function ConnectAccountCard({ onConnected }: { onConnected: () => void }) {
       </div>
 
       {/* CTA */}
-      <button
+      <motion.button
         onClick={handleSave} disabled={saving || !actId.trim()}
+        whileTap={actId.trim() && !saving ? { scale: 0.96 } : {}}
+        transition={{ type: 'spring', duration: 0.22, bounce: 0.3 }}
         style={{
           width: '100%', height: 46, borderRadius: 12, border: 'none',
           background: actId.trim() && !saving ? 'rgba(255,159,10,1)' : 'rgba(255,159,10,0.25)',
           color: actId.trim() && !saving ? '#000' : 'rgba(255,255,255,0.3)',
           fontWeight: 700, fontSize: 14, cursor: saving ? 'wait' : actId.trim() ? 'pointer' : 'default',
-          fontFamily: 'inherit', transition: 'all .2s',
+          fontFamily: 'inherit', transition: 'background .2s, color .2s',
         }}
       >
         {saving ? 'Guardando…' : 'Conectar mi cuenta →'}
-      </button>
+      </motion.button>
     </div>
   )
 }
@@ -1151,21 +1170,29 @@ export function DashboardPage() {
       )}
 
       {/* ── Onboarding tour ── */}
-      {tourStep !== null && (() => {
+      <AnimatePresence>
+        {tourStep !== null && (() => {
         const step = TOUR_STEPS[tourStep]
         const isLast = tourStep === TOUR_STEPS.length - 1
         return (
-          <div style={{
+          <motion.div
+            key="tour-backdrop"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            style={{
             position: 'fixed', inset: 0, zIndex: 300,
             display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
             padding: '0 16px 120px',
             background: 'rgba(0,0,0,0.65)',
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
-            animation: 'fadeIn .25s ease both',
           }}>
-            <div
-              key={step.key}   /* key cambia → React remonta → animación se dispara */
+            <motion.div
+              key={step.key}
+              initial={{ opacity: 0, y: 32, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0,  scale: 1    }}
+              exit={{    opacity: 0, y: 16,  scale: 0.96 }}
+              transition={{ type: 'spring', duration: 0.42, bounce: 0.2 }}
               style={{
                 width: '100%', maxWidth: 400,
                 borderRadius: 28,
@@ -1174,7 +1201,6 @@ export function DashboardPage() {
                 padding: '0 0 20px',
                 boxShadow: `0 32px 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.06)`,
                 overflow: 'hidden',
-                animation: 'tourSlideUp .38s cubic-bezier(.22,1,.36,1) both',
               }}
             >
               {/* Colored header band */}
@@ -1246,7 +1272,9 @@ export function DashboardPage() {
 
                 {/* Buttons */}
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button
+                  <motion.button
+                    whileTap={{ scale: 0.93 }}
+                    transition={{ type: 'spring', duration: 0.22, bounce: 0.3 }}
                     onClick={dismissTour}
                     style={{
                       flex: 1, height: 44, borderRadius: 14,
@@ -1254,12 +1282,13 @@ export function DashboardPage() {
                       background: 'rgba(255,255,255,0.04)',
                       color: 'rgba(255,255,255,0.35)',
                       fontWeight: 600, fontSize: 13.5, cursor: 'pointer', fontFamily: 'inherit',
-                      transition: 'all .15s',
                     }}
                   >
                     Omitir
-                  </button>
-                  <button
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: 'spring', duration: 0.22, bounce: 0.3 }}
                     onClick={() => isLast ? dismissTour() : setTourStep(tourStep + 1)}
                     style={{
                       flex: 2, height: 44, borderRadius: 14, border: 'none',
@@ -1267,7 +1296,6 @@ export function DashboardPage() {
                       color: step.key === 'metrics' ? '#000' : '#fff',
                       fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                      transition: 'opacity .15s',
                     }}
                   >
                     {isLast ? (
@@ -1275,13 +1303,14 @@ export function DashboardPage() {
                     ) : (
                       <>Siguiente <span style={{ opacity: 0.7 }}>→</span></>
                     )}
-                  </button>
+                  </motion.button>
                 </div>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         )
       })()}
+      </AnimatePresence>
 
       {/* ── Campaign picker overlay ── */}
       {showCampaignPicker && (
@@ -1591,10 +1620,20 @@ export function DashboardPage() {
         )}
 
         {/* ── Edit ventas overlay ── */}
+        <AnimatePresence>
         {heroEditing && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}
+          <motion.div
+            key="hero-edit-backdrop"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}
             onClick={closeHeroEdit}>
-            <div style={{ width: '100%', maxWidth: 340, borderRadius: 24, background: '#1A1A1A', border: '1px solid rgba(255,255,255,0.1)', padding: '28px 24px', boxShadow: '0 24px 64px rgba(0,0,0,0.6)' }}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 16 }}
+              animate={{ opacity: 1, scale: 1,    y: 0  }}
+              exit={{    opacity: 0, scale: 0.94,  y: 8  }}
+              transition={{ type: 'spring', duration: 0.38, bounce: 0.22 }}
+              style={{ width: '100%', maxWidth: 340, borderRadius: 24, background: '#1A1A1A', border: '1px solid rgba(255,255,255,0.1)', padding: '28px 24px', boxShadow: '0 24px 64px rgba(0,0,0,0.6)' }}
               onClick={e => e.stopPropagation()}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Actualizar ventas</div>
               <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 20, lineHeight: 1.5 }}>
@@ -1619,9 +1658,10 @@ export function DashboardPage() {
                     : 'Guardar'}
                 </button>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         )}
+        </AnimatePresence>
 
         {/* ── 1b. Expiry strip (only when ≤5 days) ── */}
         {showExpiry && (
@@ -1741,14 +1781,15 @@ export function DashboardPage() {
 
             {/* Ver más */}
             {sorted.length > 3 && (
-              <button
+              <motion.button
                 onClick={() => setShowAll(v => !v)}
-                style={{ width: '100%', marginTop: 10, height: 44, borderRadius: 13, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 600, transition: 'background .15s' }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
+                whileHover={{ backgroundColor: 'rgba(255,255,255,0.09)' }}
+                whileTap={{ scale: 0.97 }}
+                transition={{ type: 'spring', duration: 0.22, bounce: 0.25 }}
+                style={{ width: '100%', marginTop: 10, height: 44, borderRadius: 13, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 600, fontFamily: 'inherit' }}
               >
                 {showAll ? 'Ver menos' : `Ver ${sorted.length - 3} campaña${sorted.length - 3 !== 1 ? 's' : ''} más`}
-              </button>
+              </motion.button>
             )}
           </div>
         )}
@@ -1886,24 +1927,35 @@ export function DashboardPage() {
       `}</style>
 
       {/* ── Logout confirm modal ── */}
-      {showLogoutConfirm && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', animation: 'fadeIn .2s ease both' }}>
-          <div style={{ width: '100%', maxWidth: 340, borderRadius: 24, background: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', padding: '28px 24px', boxShadow: '0 24px 64px rgba(0,0,0,0.6)' }}>
-            <div style={{ fontWeight: 700, fontSize: 17, letterSpacing: '-0.01em', marginBottom: 8 }}>¿Cerrar sesión?</div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', lineHeight: 1.55, marginBottom: 24 }}>
-              Tu sesión se cerrará en este dispositivo.
-            </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setShowLogoutConfirm(false)} style={{ flex: 1, height: 46, borderRadius: 14, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
-                Cancelar
-              </button>
-              <button onClick={async () => { setShowLogoutConfirm(false); await signOut() }} style={{ flex: 1, height: 46, borderRadius: 14, border: 'none', background: 'rgba(255,69,58,0.85)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
-                Cerrar sesión
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {showLogoutConfirm && (
+          <motion.div
+            key="logout-backdrop"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            style={{ position: 'fixed', inset: 0, zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 16 }}
+              animate={{ opacity: 1, scale: 1,    y: 0  }}
+              exit={{    opacity: 0, scale: 0.94,  y: 8  }}
+              transition={{ type: 'spring', duration: 0.38, bounce: 0.22 }}
+              style={{ width: '100%', maxWidth: 340, borderRadius: 24, background: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', padding: '28px 24px', boxShadow: '0 24px 64px rgba(0,0,0,0.6)' }}>
+              <div style={{ fontWeight: 700, fontSize: 17, letterSpacing: '-0.01em', marginBottom: 8 }}>¿Cerrar sesión?</div>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', lineHeight: 1.55, marginBottom: 24 }}>
+                Tu sesión se cerrará en este dispositivo.
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <motion.button whileTap={{ scale: 0.96 }} onClick={() => setShowLogoutConfirm(false)} style={{ flex: 1, height: 46, borderRadius: 14, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)', fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  Cancelar
+                </motion.button>
+                <motion.button whileTap={{ scale: 0.96 }} onClick={async () => { setShowLogoutConfirm(false); await signOut() }} style={{ flex: 1, height: 46, borderRadius: 14, border: 'none', background: 'rgba(255,69,58,0.85)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  Cerrar sesión
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
