@@ -195,34 +195,37 @@ function Card({ t }: { t: TestimonialItem }) {
   )
 }
 
-/* ── Arrow button ── */
-function ArrowBtn({ dir, onClick }: { dir: 'left' | 'right'; onClick: () => void }) {
+/* ── Arrow button — wrapper div mantiene el translateY, motion.button solo hace scale ── */
+function ArrowBtn({ onClick }: { dir: 'right'; onClick: () => void }) {
   return (
-    <motion.button
-      onClick={onClick}
-      aria-label={dir === 'right' ? 'Siguiente opinión' : 'Opinión anterior'}
-      whileHover={{ scale: 1.1, backgroundColor: 'rgba(255,90,31,0.75)' }}
-      whileTap={{ scale: 0.92 }}
-      transition={{ type: 'spring', duration: 0.25, bounce: 0.3 }}
-      style={{
-        position: 'absolute',
-        top: '50%',
-        [dir]: -18,
-        transform: 'translateY(-50%)',
-        zIndex: 10,
-        width: 36, height: 36,
-        borderRadius: '50%',
-        border: 'none',
-        background: 'rgba(255,255,255,0.10)',
-        backdropFilter: 'blur(8px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        cursor: 'pointer', color: '#fff',
-      }}
-    >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        {dir === 'right' ? <polyline points="9 18 15 12 9 6"/> : <polyline points="15 18 9 12 15 6"/>}
-      </svg>
-    </motion.button>
+    <div style={{
+      position: 'absolute',
+      top: '50%',
+      right: -18,
+      transform: 'translateY(-50%)',
+      zIndex: 10,
+    }}>
+      <motion.button
+        onClick={onClick}
+        aria-label="Siguiente opinión"
+        whileHover={{ scale: 1.12, backgroundColor: 'rgba(255,90,31,0.80)' }}
+        whileTap={{ scale: 0.88 }}
+        transition={{ type: 'spring', duration: 0.22, bounce: 0.35 }}
+        style={{
+          width: 36, height: 36,
+          borderRadius: '50%',
+          border: 'none',
+          background: 'rgba(255,255,255,0.10)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', color: '#fff',
+        }}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </motion.button>
+    </div>
   )
 }
 
@@ -535,9 +538,11 @@ function buildItems(approved: TestimonialItem[], own: StoredTestimonial[]): Test
 }
 
 /* ── Variants para el slider con dirección ── */
+// dir = -1 → el usuario deslizó LEFT (va al siguiente): card sale por izquierda, nueva entra por derecha
+// dir =  1 → el usuario deslizó RIGHT (va al anterior): card sale por derecha, nueva entra por izquierda
 const CARD_VARIANTS = {
   enter: (dir: number) => ({
-    x: dir >= 0 ? '72%' : '-72%',
+    x: dir <= 0 ? '72%' : '-72%',   // siguiente → entra desde la derecha | anterior → desde la izquierda
     opacity: 0,
     scale: 0.92,
     filter: 'blur(3px)',
@@ -549,7 +554,7 @@ const CARD_VARIANTS = {
     filter: 'blur(0px)',
   },
   exit: (dir: number) => ({
-    x: dir >= 0 ? '-72%' : '72%',
+    x: dir <= 0 ? '-72%' : '72%',   // siguiente → sale por izquierda | anterior → sale por derecha
     opacity: 0,
     scale: 0.92,
     filter: 'blur(3px)',
@@ -639,7 +644,6 @@ export function TestimonialsSlider() {
   }, [resetTimer])
 
   const handleNext = () => { goNext(); resetTimer() }
-  const handlePrev = () => { goPrev(); resetTimer() }
 
   return (
     <>
@@ -658,12 +662,9 @@ export function TestimonialsSlider() {
 
         {/* Slider */}
         {items.length > 0 && (
-          <div style={{ maxWidth: 400, margin: '0 auto', padding: '0 12px 0 24px', position: 'relative' }}>
+          <div style={{ maxWidth: 400, margin: '0 auto', padding: '0 24px', position: 'relative' }}>
             {items.length > 1 && (
-              <>
-                <ArrowBtn dir="left"  onClick={handlePrev} />
-                <ArrowBtn dir="right" onClick={handleNext} />
-              </>
+              <ArrowBtn dir="right" onClick={handleNext} />
             )}
 
             {/* Stage con overflow hidden para que la card saliente no sea visible */}
@@ -685,16 +686,11 @@ export function TestimonialsSlider() {
                     if (intervalRef.current) clearInterval(intervalRef.current)
                   }}
                   onDragEnd={(_, info) => {
-                    const W = 400
-                    const threshold = W * 0.28
-                    const vel       = info.velocity.x
-                    const off       = info.offset.x
-
-                    if (off < -threshold || vel < -450) {
-                      goNext()
-                    } else if (off > threshold || vel > 450) {
-                      goPrev()
-                    }
+                    const threshold = 110
+                    const vel = info.velocity.x
+                    const off = info.offset.x
+                    if (off < -threshold || vel < -450) { goNext() }
+                    else if (off > threshold || vel > 450) { goPrev() }
                     resetTimer()
                   }}
                   whileDrag={{ scale: 1.025, boxShadow: '0 16px 56px rgba(0,0,0,0.55)' }}
@@ -706,6 +702,37 @@ export function TestimonialsSlider() {
             </div>
 
             <Dots total={items.length} current={currentIdx} />
+
+            {/* Hint "Desliza para ver más" */}
+            {items.length > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 14 }}>
+                {/* Flecha izquierda animada */}
+                <motion.div
+                  animate={{ x: [0, -5, 0] }}
+                  transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut', delay: 0.2 }}
+                  style={{ display: 'flex', color: 'var(--fg-4)' }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 18 9 12 15 6"/>
+                  </svg>
+                </motion.div>
+
+                <span style={{ fontSize: 11.5, color: 'var(--fg-4)', fontFamily: 'var(--font-body)', fontWeight: 500, letterSpacing: '0.01em' }}>
+                  Desliza para ver más
+                </span>
+
+                {/* Flecha derecha animada */}
+                <motion.div
+                  animate={{ x: [0, 5, 0] }}
+                  transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+                  style={{ display: 'flex', color: 'var(--fg-4)' }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </motion.div>
+              </div>
+            )}
           </div>
         )}
 
