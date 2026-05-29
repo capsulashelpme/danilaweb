@@ -36,14 +36,21 @@ const C = {
   faint:  'rgba(255,255,255,0.12)',
 }
 
+// ── Caché a nivel módulo: evita refetch en cada remount ────────
+// TTL de 60 s — si el admin sube algo, en un minuto se refleja sin recargar.
+const _cache = new Map<MediaSection, { data: MediaAsset[]; ts: number }>()
+const CACHE_TTL_MS = 60_000
+
 // ── Hook: fetch media assets for a section ─────────────────────
 export function useMediaAssets(section: MediaSection) {
-  const [assets, setAssets] = useState<MediaAsset[]>([])
-  const [loaded, setLoaded] = useState(false)
+  const cached = _cache.get(section)
+  const [assets, setAssets] = useState<MediaAsset[]>(cached?.data ?? [])
+  const [loaded, setLoaded] = useState(!!cached)
 
   useEffect(() => {
     let mounted = true
-    const fetch = async () => {
+
+    const doFetch = async () => {
       const { data } = await supabase
         .from('media_assets')
         .select('*')
@@ -51,18 +58,28 @@ export function useMediaAssets(section: MediaSection) {
         .eq('is_active', true)
         .order('order_index', { ascending: true })
         .order('created_at', { ascending: false })
-      if (mounted) {
-        setAssets((data as MediaAsset[]) ?? [])
-        setLoaded(true)
-      }
+      if (!mounted) return
+      const result = (data as MediaAsset[]) ?? []
+      _cache.set(section, { data: result, ts: Date.now() })
+      setAssets(result)
+      setLoaded(true)
     }
-    fetch()
 
+    // Si hay caché fresca, no volvemos a pedir — la mostramos de inmediato
+    const hit = _cache.get(section)
+    if (!hit || Date.now() - hit.ts > CACHE_TTL_MS) {
+      doFetch()
+    }
+
+    // Realtime: invalida caché y actualiza si algo cambia en DB
     const ch = supabase.channel(`media-assets-${section}`)
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'media_assets',
         filter: `section=eq.${section}`,
-      }, fetch)
+      }, () => {
+        _cache.delete(section)
+        doFetch()
+      })
       .subscribe()
 
     return () => { mounted = false; supabase.removeChannel(ch) }
