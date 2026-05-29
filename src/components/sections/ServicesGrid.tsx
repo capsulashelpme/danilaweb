@@ -1,3 +1,5 @@
+import { motion } from 'framer-motion'
+
 type IconName = 'target' | 'layout' | 'speaker' | 'sparkle' | 'cog' | 'chart'
 
 const Icon = ({ name, size = 18 }: { name: IconName; size?: number }) => {
@@ -25,6 +27,14 @@ const SERVICES = [
   { icon: 'chart'   as IconName, title: 'Dashboard de cliente',   desc: 'Panel privado para ver avances en tiempo real.',  tag: '06 / Insight' },
 ]
 
+const cardVariants = {
+  hidden: { opacity: 0, y: 28 },
+  visible: (i: number) => ({
+    opacity: 1, y: 0,
+    transition: { type: 'spring' as const, damping: 22, stiffness: 110, delay: i * 0.07 },
+  }),
+}
+
 export function ServicesGrid() {
   return (
     <section id="servicios" style={{ padding: '56px 0' }}>
@@ -42,19 +52,26 @@ export function ServicesGrid() {
 
         <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', marginTop: 40 }}>
           {SERVICES.map((s, i) => (
-            <div key={i} className="reveal" style={{
-              position: 'relative',
-              padding: '22px 22px 20px',
-              borderRadius: 'var(--r-xl)',
-              background: 'var(--bg-2)',
-              border: '1px solid var(--card-border)',
-              overflow: 'hidden',
-              isolation: 'isolate',
-              transition: 'background .2s, border-color .2s',
-              minWidth: 0,
-            }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-3)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--card-border-hover)' }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-2)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--card-border)' }}
+            <motion.div
+              key={i}
+              custom={i}
+              variants={cardVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-40px' }}
+              whileHover={{ y: -4, scale: 1.015, transition: { type: 'spring' as const, damping: 18, stiffness: 260 } }}
+              whileTap={{ scale: 0.98 }}
+              style={{
+                position: 'relative',
+                padding: '22px 22px 20px',
+                borderRadius: 'var(--r-xl)',
+                background: 'var(--bg-2)',
+                border: '1px solid var(--card-border)',
+                overflow: 'hidden',
+                isolation: 'isolate',
+                cursor: 'default',
+                minWidth: 0,
+              }}
             >
               <div style={{ width: 40, height: 40, borderRadius: 11, background: 'rgba(255,90,31,0.12)', border: '1px solid rgba(255,90,31,0.4)', display: 'grid', placeItems: 'center', color: 'var(--orange-1)', marginBottom: 18 }}>
                 <Icon name={s.icon} size={18}/>
@@ -65,7 +82,7 @@ export function ServicesGrid() {
                 <span style={{ color: 'var(--orange-1)', fontWeight: 600 }}>{s.tag}</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>

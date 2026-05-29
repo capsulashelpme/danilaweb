@@ -1,3 +1,5 @@
+import { motion } from 'framer-motion'
+
 const STEPS = [
   { num: '01', title: 'Diagnóstico',  desc: 'Vemos qué frena tus ventas — sin adornos.',      pct: 100 },
   { num: '02', title: 'Estrategia',   desc: 'Plan claro y enfocado a resultados.',            pct: 100 },
@@ -5,6 +7,14 @@ const STEPS = [
   { num: '04', title: 'Lanzamiento',  desc: 'Salimos al mercado con todo listo y medible.',   pct: 70 },
   { num: '05', title: 'Optimización', desc: 'Escalamos lo que funciona, semana a semana.',    pct: 35 },
 ]
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: (i: number) => ({
+    opacity: 1, y: 0,
+    transition: { type: 'spring' as const, damping: 22, stiffness: 120, delay: i * 0.08 },
+  }),
+}
 
 export function ProcessSteps() {
   return (
@@ -23,22 +33,31 @@ export function ProcessSteps() {
 
         <div style={{ display: 'grid', gap: 10, marginTop: 40, gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))' }}>
           {STEPS.map((s, i) => (
-            <div key={i} className="reveal" style={{
-              padding: '22px 20px',
-              borderRadius: 'var(--r-lg)',
-              background: 'var(--bg-2)',
-              border: '1px solid var(--card-border)',
-              position: 'relative',
-              display: 'flex', flexDirection: 'column', gap: 10,
-              minWidth: 0, minHeight: 170,
-            }}>
+            <motion.div
+              key={i}
+              custom={i}
+              variants={cardVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-40px' }}
+              whileHover={{ y: -3, scale: 1.02, transition: { type: 'spring' as const, damping: 18, stiffness: 280 } }}
+              style={{
+                padding: '22px 20px',
+                borderRadius: 'var(--r-lg)',
+                background: 'var(--bg-2)',
+                border: '1px solid var(--card-border)',
+                position: 'relative',
+                display: 'flex', flexDirection: 'column', gap: 10,
+                minWidth: 0, minHeight: 170,
+              }}
+            >
               <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 26, color: 'var(--orange-1)', letterSpacing: '-.03em', lineHeight: 1 }}>{s.num}</div>
               <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, letterSpacing: '-.01em' }}>{s.title}</div>
               <div style={{ fontSize: 12.5, color: 'var(--fg-2)', lineHeight: 1.5 }}>{s.desc}</div>
               <div className="progress-bar" style={{ marginTop: 'auto' }}>
                 <span style={{ width: `${s.pct}%` }}/>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>
