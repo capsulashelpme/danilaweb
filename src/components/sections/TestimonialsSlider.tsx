@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { AnimatePresence, motion, useMotionValue, animate } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 
 /* ── Tipos ── */
@@ -195,12 +195,12 @@ function Card({ t }: { t: TestimonialItem }) {
   )
 }
 
-/* ── Arrow button — wrapper div mantiene el translateY, motion.button solo hace scale ── */
+/* ── Arrow button — centrado en los 280px de la card ── */
 function ArrowBtn({ onClick }: { dir: 'right'; onClick: () => void }) {
   return (
     <div style={{
       position: 'absolute',
-      top: '50%',
+      top: 140,           // mitad exacta de los 280px de la card
       right: -18,
       transform: 'translateY(-50%)',
       zIndex: 10,
@@ -560,13 +560,13 @@ export function TestimonialsSlider() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [idx, setIdx]   = useState(0)
 
-  // Un solo motion value controla la posición X de la card — drag y transición comparten el mismo valor
-  const x            = useMotionValue(0)
-  const animating    = useRef(false)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const idxRef       = useRef(0)
-  const totalRef     = useRef(0)
-  const intervalRef  = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [dir, setDir]   = useState<1 | -1>(1)  // 1 = avanza (→), -1 = retrocede (←)
+
+  const idxRef      = useRef(0)
+  const totalRef    = useRef(0)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Para detectar swipe táctil
+  const dragStartX  = useRef(0)
   idxRef.current   = idx
   totalRef.current = items.length
 
@@ -597,32 +597,18 @@ export function TestimonialsSlider() {
     return () => { supabase.removeChannel(ch) }
   }, [refreshItems])
 
-  // Navega hacia newIdx saliendo por dir (-1 = izquierda / 1 = derecha)
-  const navigateTo = useCallback((newIdx: number, dir: -1 | 1) => {
-    if (animating.current || totalRef.current <= 1) return
-    animating.current = true
-
-    const W     = containerRef.current?.offsetWidth ?? 360
-    const exitX = dir === -1 ? -W * 1.15 : W * 1.15   // hacia donde sale la card actual
-    const enterX = -exitX                               // desde donde entra la nueva card
-
-    // 1) La card actual sale — spring rápido y decidido
-    animate(x, exitX, { type: 'spring', damping: 32, stiffness: 280, restDelta: 1 }).then(() => {
-      // 2) Snap: nueva card aparece fuera de pantalla SIN animación
-      x.set(enterX)
-      setIdx(newIdx)
-      // 3) Un frame para que React renderice la nueva card en enterX
-      requestAnimationFrame(() => {
-        // 4) La nueva card entra — spring más suave y natural
-        animate(x, 0, { type: 'spring', damping: 28, stiffness: 200, restDelta: 0.5 }).then(() => {
-          animating.current = false
-        })
-      })
-    })
-  }, [x])
+  const navigateTo = useCallback((newIdx: number, direction: 1 | -1) => {
+    if (totalRef.current <= 1) return
+    setDir(direction)
+    setIdx(newIdx)
+  }, [])
 
   const goNext = useCallback(() => {
-    navigateTo((idxRef.current + 1) % totalRef.current, -1)
+    navigateTo((idxRef.current + 1) % totalRef.current, 1)
+  }, [navigateTo])
+
+  const goPrev = useCallback(() => {
+    navigateTo((idxRef.current - 1 + totalRef.current) % totalRef.current, -1)
   }, [navigateTo])
 
   const resetTimer = useCallback(() => {
@@ -653,68 +639,53 @@ export function TestimonialsSlider() {
         {/* Slider */}
         {items.length > 0 && (
           <div style={{ maxWidth: 400, margin: '0 auto', padding: '0 24px', position: 'relative' }}>
+            {/* Botón fuera del stage (overflow:hidden clipearía el botón) */}
             {items.length > 1 && (
               <ArrowBtn dir="right" onClick={() => { goNext(); resetTimer() }} />
             )}
 
-            {/* Stage — sin overflow:hidden para que la card no se corte al deslizar */}
-            <div ref={containerRef} style={{ position: 'relative' }}>
-              <motion.div
-                style={{ x, willChange: 'transform', cursor: items.length > 1 ? 'grab' : 'default' }}
-                drag={items.length > 1 ? 'x' : false}
-                dragConstraints={{ left: 0, right: 0 }}
-                dragElastic={{ left: 0.22, right: 0.22 }}
-                dragMomentum={false}
-                onDragStart={() => { if (intervalRef.current) clearInterval(intervalRef.current) }}
-                onDragEnd={(_, info) => {
-                  const threshold = 90
-                  const vel = info.velocity.x
-                  const off = info.offset.x
-                  if (off < -threshold || vel < -400) {
-                    navigateTo((idxRef.current + 1) % totalRef.current, -1)
-                  } else if (off > threshold || vel > 400) {
-                    navigateTo((idxRef.current - 1 + totalRef.current) % totalRef.current, 1)
-                  } else {
-                    // Spring de regreso al centro sin animating flag
-                    animate(x, 0, { type: 'spring', damping: 26, stiffness: 300 })
-                  }
-                  resetTimer()
-                }}
-                whileDrag={{ scale: 1.02 }}
-              >
-                <Card t={items[idx]} />
-              </motion.div>
+            {/* Stage con overflow hidden para que las cards entren/salgan limpias */}
+            <div
+              style={{ position: 'relative', overflow: 'hidden', borderRadius: 22 }}
+              onTouchStart={e => { dragStartX.current = e.touches[0].clientX }}
+              onTouchEnd={e => {
+                const diff = dragStartX.current - e.changedTouches[0].clientX
+                if (Math.abs(diff) < 40) return
+                if (diff > 0) { goNext(); resetTimer() }
+                else          { goPrev(); resetTimer() }
+              }}
+            >
+
+              <AnimatePresence mode="popLayout" custom={dir} initial={false}>
+                <motion.div
+                  key={idx}
+                  custom={dir}
+                  variants={{
+                    enter:  (d: number) => ({ x: d > 0 ? '100%' : '-100%', opacity: 0 }),
+                    center: { x: 0, opacity: 1 },
+                    exit:   (d: number) => ({ x: d > 0 ? '-100%' : '100%', opacity: 0 }),
+                  }}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.32, ease: [0.32, 0, 0.67, 0] }}
+                >
+                  <Card t={items[idx]} />
+                </motion.div>
+              </AnimatePresence>
             </div>
 
             <Dots total={items.length} current={idx} />
 
-            {/* Hint "Desliza para ver más" */}
+            {/* Hint */}
             {items.length > 1 && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 14 }}>
-                {/* Flecha izquierda animada */}
-                <motion.div
-                  animate={{ x: [0, -5, 0] }}
-                  transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut', delay: 0.2 }}
-                  style={{ display: 'flex', color: 'var(--fg-4)' }}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="15 18 9 12 15 6"/>
-                  </svg>
+                <motion.div animate={{ x: [0, -5, 0] }} transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut', delay: 0.2 }} style={{ display: 'flex', color: 'var(--fg-4)' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                 </motion.div>
-
-                <span style={{ fontSize: 11.5, color: 'var(--fg-4)', fontFamily: 'var(--font-body)', fontWeight: 500, letterSpacing: '0.01em' }}>
-                  Desliza para ver más
-                </span>
-
-                {/* Flecha derecha animada */}
-                <motion.div
-                  animate={{ x: [0, 5, 0] }}
-                  transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
-                  style={{ display: 'flex', color: 'var(--fg-4)' }}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
+                <span style={{ fontSize: 11.5, color: 'var(--fg-4)', fontFamily: 'var(--font-body)', fontWeight: 500, letterSpacing: '0.01em' }}>Desliza para ver más</span>
+                <motion.div animate={{ x: [0, 5, 0] }} transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }} style={{ display: 'flex', color: 'var(--fg-4)' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                 </motion.div>
               </div>
             )}
