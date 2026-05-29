@@ -1,4 +1,5 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 
 /* ── Tipos ── */
@@ -65,37 +66,37 @@ const SHAPE_SETS: Shape[][] = [
 ]
 
 function ShapeEl({ s }: { s: Shape }) {
-  const base: React.CSSProperties = {
-    position: 'absolute',
-    width:  s.w, height: s.h,
-    top: s.top, bottom: s.bottom, left: s.left, right: s.right,
-    background: s.color,
-    opacity: s.opacity,
-    transform: s.rotate ? `rotate(${s.rotate}deg)` : undefined,
-    pointerEvents: 'none',
-    borderRadius:
-      s.type === 'circle'      ? '50%'  :
-      s.type === 'roundedrect' ? '22px' : '999px',
-  }
-  return <div style={base} />
+  return (
+    <div style={{
+      position: 'absolute',
+      width: s.w, height: s.h,
+      top: s.top, bottom: s.bottom, left: s.left, right: s.right,
+      background: s.color,
+      opacity: s.opacity,
+      transform: s.rotate ? `rotate(${s.rotate}deg)` : undefined,
+      pointerEvents: 'none',
+      borderRadius:
+        s.type === 'circle'      ? '50%'  :
+        s.type === 'roundedrect' ? '22px' : '999px',
+    }} />
+  )
 }
 
-/* ── Tipos y datos ── */
 const SERVICE_COLOR: Record<string, string> = {
   'Publicidad Pagada':   '#FF5A1F',
   'Página Web':          '#6B9FFF',
   'Publicidad Orgánica': '#A78BFA',
 }
+void SERVICE_COLOR
 
 const SERVICES = ['Publicidad Pagada', 'Página Web', 'Publicidad Orgánica']
-
 const LS_KEY = 'dogma_my_testimonials'
 
 interface TestimonialItem {
-  id?: string          // id de DB (si viene de DB o localStorage)
+  id?: string
   name: string; biz: string; service: string
   stars: number; text: string; shapes: Shape[]
-  pending?: boolean    // true = enviada por este usuario, aún no aprobada
+  pending?: boolean
 }
 
 interface StoredTestimonial {
@@ -110,7 +111,6 @@ function saveOwn(items: StoredTestimonial[]) {
   localStorage.setItem(LS_KEY, JSON.stringify(items))
 }
 
-
 /* ── Stars ── */
 function Stars({ n }: { n: number }) {
   return (
@@ -124,7 +124,6 @@ function Stars({ n }: { n: number }) {
   )
 }
 
-/* ── Verified — icono estilo Twitter/X ── */
 function Verified() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="#1D9BF0" style={{ flexShrink: 0 }}>
@@ -133,18 +132,15 @@ function Verified() {
   )
 }
 
-/* ── Avatar inicial ── */
 function Avatar({ name }: { name: string }) {
-  const initial = name.charAt(0).toUpperCase()
   return (
     <div style={{
       width: 44, height: 44, borderRadius: '50%',
       background: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      flexShrink: 0,
-      boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+      flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
     }}>
       <span style={{ color: '#fff', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18 }}>
-        {initial}
+        {name.charAt(0).toUpperCase()}
       </span>
     </div>
   )
@@ -152,74 +148,43 @@ function Avatar({ name }: { name: string }) {
 
 /* ── Card ── */
 function Card({ t }: { t: TestimonialItem }) {
-  void (SERVICE_COLOR[t.service] ?? '#FF5A1F') // reservado para uso futuro
   return (
     <div style={{
-      borderRadius: 22,
-      overflow: 'hidden',
+      borderRadius: 22, overflow: 'hidden',
       boxShadow: '0 8px 40px rgba(0,0,0,0.45)',
-      width: '100%',
-      background: '#fff',
-      height: 280,
-      display: 'flex',
-      flexDirection: 'column',
+      width: '100%', background: '#fff', height: 280,
+      display: 'flex', flexDirection: 'column',
     }}>
-
-      {/* ── Cuerpo blanco ── */}
       <div style={{ padding: '20px 20px 18px', display: 'flex', flexDirection: 'column', gap: 14, flex: 1, overflow: 'hidden' }}>
-
-        {/* Fila 1: avatar | nombre + ícono verificado | badge servicio */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Avatar name={t.name} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <span style={{
-                fontFamily: 'var(--font-display)', fontWeight: 700,
-                fontSize: 14.5, color: '#111',
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-              }}>
+              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14.5, color: '#111', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {t.name}
               </span>
               {!t.pending && <Verified />}
             </div>
             <div style={{ fontSize: 12, color: '#888', marginTop: 1 }}>{t.biz}</div>
           </div>
-          <span style={{
-            fontSize: 10.5, fontWeight: 600,
-            color: '#444', background: '#f0f0f0',
-            borderRadius: 8, padding: '5px 10px',
-            whiteSpace: 'nowrap', flexShrink: 0,
-            border: '1px solid #e5e5e5',
-          }}>
+          <span style={{ fontSize: 10.5, fontWeight: 600, color: '#444', background: '#f0f0f0', borderRadius: 8, padding: '5px 10px', whiteSpace: 'nowrap', flexShrink: 0, border: '1px solid #e5e5e5' }}>
             {t.service}
           </span>
         </div>
 
-        {/* Texto con clamp — altura fija, no crece */}
         <p style={{
           fontFamily: 'var(--font-display)', fontWeight: 700,
-          fontSize: 15, lineHeight: 1.45, color: '#111',
-          margin: 0,
-          display: '-webkit-box',
-          WebkitLineClamp: 3,
-          WebkitBoxOrient: 'vertical',
-          overflow: 'hidden',
-          minHeight: '65px', // 3 líneas × lineHeight — altura siempre igual
+          fontSize: 15, lineHeight: 1.45, color: '#111', margin: 0,
+          display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical',
+          overflow: 'hidden', minHeight: '65px',
         }}>
           "{t.text}"
         </p>
 
-        {/* Estrellas */}
         <Stars n={t.stars} />
       </div>
 
-      {/* ── Barra inferior oscura ── */}
-      <div style={{
-        position: 'relative',
-        background: '#111',
-        padding: '14px 20px',
-        overflow: 'hidden',
-      }}>
+      <div style={{ position: 'relative', background: '#111', padding: '14px 20px', overflow: 'hidden' }}>
         {t.shapes.map((s, i) => <ShapeEl key={i} s={s} />)}
         <div style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>{t.biz}</div>
@@ -230,12 +195,15 @@ function Card({ t }: { t: TestimonialItem }) {
   )
 }
 
-/* ── Flecha ── */
+/* ── Arrow button ── */
 function ArrowBtn({ dir, onClick }: { dir: 'left' | 'right'; onClick: () => void }) {
   return (
-    <button
+    <motion.button
       onClick={onClick}
       aria-label={dir === 'right' ? 'Siguiente opinión' : 'Opinión anterior'}
+      whileHover={{ scale: 1.1, backgroundColor: 'rgba(255,90,31,0.75)' }}
+      whileTap={{ scale: 0.92 }}
+      transition={{ type: 'spring', duration: 0.25, bounce: 0.3 }}
       style={{
         position: 'absolute',
         top: '50%',
@@ -248,34 +216,29 @@ function ArrowBtn({ dir, onClick }: { dir: 'left' | 'right'; onClick: () => void
         background: 'rgba(255,255,255,0.10)',
         backdropFilter: 'blur(8px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        cursor: 'pointer',
-        color: '#fff',
-        transition: 'background 0.2s, transform 0.15s',
+        cursor: 'pointer', color: '#fff',
       }}
-      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,90,31,0.75)')}
-      onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.10)')}
     >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        {dir === 'right'
-          ? <><polyline points="9 18 15 12 9 6"/></>
-          : <><polyline points="15 18 9 12 15 6"/></>
-        }
+        {dir === 'right' ? <polyline points="9 18 15 12 9 6"/> : <polyline points="15 18 9 12 15 6"/>}
       </svg>
-    </button>
+    </motion.button>
   )
 }
 
-/* ── Star picker interactivo ── */
+/* ── Star picker ── */
 function StarPicker({ value, onChange }: { value: number; onChange: (n: number) => void }) {
   const [hovered, setHovered] = useState(0)
   return (
     <div style={{ display: 'flex', gap: 6 }}>
       {[1,2,3,4,5].map(n => (
-        <button
+        <motion.button
           key={n} type="button"
           onClick={() => onChange(n)}
-          onMouseEnter={() => setHovered(n)}
-          onMouseLeave={() => setHovered(0)}
+          onHoverStart={() => setHovered(n)}
+          onHoverEnd={() => setHovered(0)}
+          whileTap={{ scale: 0.85 }}
+          transition={{ type: 'spring', duration: 0.2, bounce: 0.4 }}
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}
         >
           <svg width="28" height="28" viewBox="0 0 24 24"
@@ -284,26 +247,18 @@ function StarPicker({ value, onChange }: { value: number; onChange: (n: number) 
           >
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
           </svg>
-        </button>
+        </motion.button>
       ))}
     </div>
   )
 }
 
-/* ── Bottom Sheet de opinión ── */
-/* ── Helpers de capitalización ── */
-// "daniel quintana" → "Daniel Quintana"
-const toTitleCase = (s: string) =>
-  s.replace(/\b\w/g, c => c.toUpperCase())
+/* ── Helpers ── */
+const toTitleCase = (s: string) => s.replace(/\b\w/g, c => c.toUpperCase())
+const toFirstCap  = (s: string) => s.length === 0 ? s : s.charAt(0).toUpperCase() + s.slice(1)
+const MAX_NAME = 40; const MAX_BIZ = 50; const MAX_TEXT = 220
 
-// "bocados resto" → "Bocados resto"
-const toFirstCap = (s: string) =>
-  s.length === 0 ? s : s.charAt(0).toUpperCase() + s.slice(1)
-
-const MAX_NAME = 40
-const MAX_BIZ  = 50
-const MAX_TEXT = 220
-
+/* ── Bottom Sheet ── */
 function OpinionSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [name,    setNameRaw] = useState('')
   const [biz,     setBizRaw]  = useState('')
@@ -314,7 +269,6 @@ function OpinionSheet({ open, onClose }: { open: boolean; onClose: () => void })
   const [sent,    setSent]    = useState(false)
   const [err,     setErr]     = useState('')
 
-  // Setters con normalización
   const setName = (v: string) => setNameRaw(toTitleCase(v.slice(0, MAX_NAME)))
   const setBiz  = (v: string) => setBizRaw(toFirstCap(v.slice(0, MAX_BIZ)))
   const setText = (v: string) => setTextRaw(toFirstCap(v.slice(0, MAX_TEXT)))
@@ -323,20 +277,14 @@ function OpinionSheet({ open, onClose }: { open: boolean; onClose: () => void })
     setNameRaw(''); setBizRaw(''); setService(SERVICES[0])
     setTextRaw(''); setStars(5); setSent(false); setErr('')
   }
-
   const handleClose = () => { onClose(); setTimeout(reset, 420) }
 
   const submit = async () => {
-    const n = name.trim()
-    const b = biz.trim()
-    const t = text.trim()
+    const n = name.trim(); const b = biz.trim(); const t = text.trim()
     if (!n) { setErr('Escribe tu nombre.'); return }
     if (!b) { setErr('Escribe el nombre de tu negocio.'); return }
     if (!t) { setErr('Escribe tu opinión.'); return }
-    setErr('')
-    setSending(true)
-    // Generamos el UUID en el cliente para evitar hacer SELECT después del insert
-    // (el SELECT fallaría porque la policy solo permite leer filas 'approved')
+    setErr(''); setSending(true)
     const id = crypto.randomUUID()
     const { error } = await supabase
       .from('testimonials')
@@ -347,7 +295,6 @@ function OpinionSheet({ open, onClose }: { open: boolean; onClose: () => void })
       setErr('Hubo un problema al enviar. Intenta de nuevo.')
       return
     }
-    // Guardar en localStorage para mostrársela solo al emisor mientras está pendiente
     const existing = loadOwn()
     existing.unshift({ id, name: n, biz: b, service, text: t, stars, submittedAt: new Date().toISOString() })
     saveOwn(existing.slice(0, 10))
@@ -366,29 +313,40 @@ function OpinionSheet({ open, onClose }: { open: boolean; onClose: () => void })
 
   return (
     <>
-      {/* Overlay */}
-      <div onClick={handleClose} style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
-        zIndex: 1000,
-        opacity: open ? 1 : 0,
-        pointerEvents: open ? 'auto' : 'none',
-        transition: 'opacity 0.3s ease',
-        backdropFilter: 'blur(3px)',
-      }} />
+      {/* Overlay — fade */}
+      <motion.div
+        onClick={handleClose}
+        initial={false}
+        animate={{ opacity: open ? 1 : 0, backdropFilter: open ? 'blur(4px)' : 'blur(0px)' }}
+        transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+        style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.55)',
+          zIndex: 1000,
+          pointerEvents: open ? 'auto' : 'none',
+        }}
+      />
 
-      {/* Sheet */}
-      <div style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0,
-        zIndex: 1001,
-        background: '#fff',
-        borderRadius: '24px 24px 0 0',
-        padding: '0 20px 36px',
-        maxHeight: '82vh',
-        overflowY: 'auto',
-        transform: open ? 'translateY(0)' : 'translateY(105%)',
-        transition: 'transform 0.38s cubic-bezier(.16,1,.3,1)',
-        boxShadow: '0 -8px 48px rgba(0,0,0,0.35)',
-      }}>
+      {/* Sheet — slide up con spring */}
+      <motion.div
+        initial={false}
+        animate={{
+          y: open ? 0 : '105%',
+          scale: open ? 1 : 0.98,
+        }}
+        transition={{ type: 'spring', damping: 32, stiffness: 320, mass: 0.9 }}
+        style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0,
+          zIndex: 1001,
+          background: '#fff',
+          borderRadius: '24px 24px 0 0',
+          padding: '0 20px 36px',
+          maxHeight: '82vh',
+          overflowY: 'auto',
+          boxShadow: '0 -8px 48px rgba(0,0,0,0.35)',
+          transformOrigin: 'bottom center',
+        }}
+      >
         {/* Handle */}
         <div style={{ display: 'flex', justifyContent: 'center', padding: '14px 0 4px' }}>
           <div style={{ width: 40, height: 4, borderRadius: 999, background: '#ddd' }} />
@@ -399,128 +357,171 @@ function OpinionSheet({ open, onClose }: { open: boolean; onClose: () => void })
           <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 17, color: '#111' }}>
             Dejar mi opinión
           </span>
-          <button onClick={handleClose} style={{ background: '#f0f0f0', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555' }}>
+          <motion.button
+            onClick={handleClose}
+            whileHover={{ scale: 1.1, backgroundColor: '#e5e5e5' }}
+            whileTap={{ scale: 0.92 }}
+            transition={{ type: 'spring', duration: 0.2, bounce: 0.3 }}
+            style={{ background: '#f0f0f0', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555' }}
+          >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-          </button>
+          </motion.button>
         </div>
 
-        {sent ? (
-          /* ── Confirmación ── */
-          <div style={{ textAlign: 'center', padding: '32px 0 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
-            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(34,197,94,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 6L9 17l-5-5"/>
-              </svg>
-            </div>
-            <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, color: '#111', margin: 0 }}>
-              Publicada con éxito
-            </p>
-            <button onClick={handleClose} style={{ background: '#111', color: '#fff', border: 'none', borderRadius: 12, padding: '12px 36px', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
-              Cerrar
-            </button>
-          </div>
-        ) : (
-          /* ── Formulario ── */
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-            {/* Nombre + Negocio */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div>
-                <label style={labelStyle}>Nombre *</label>
-                <input
-                  style={inputStyle}
-                  placeholder="Tu nombre"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  maxLength={MAX_NAME}
-                  autoComplete="given-name"
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>Negocio *</label>
-                <input
-                  style={inputStyle}
-                  placeholder="Nombre del negocio"
-                  value={biz}
-                  onChange={e => setBiz(e.target.value)}
-                  maxLength={MAX_BIZ}
-                  autoComplete="organization"
-                />
-              </div>
-            </div>
-
-            {/* Servicio */}
-            <div>
-              <label style={labelStyle}>Servicio contratado</label>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {SERVICES.map(s => (
-                  <button key={s} type="button" onClick={() => setService(s)} style={{
-                    fontSize: 11.5, fontWeight: 600, borderRadius: 999, padding: '6px 14px',
-                    border: 'none', cursor: 'pointer',
-                    background: service === s ? '#111' : '#f0f0f0',
-                    color:      service === s ? '#fff' : '#555',
-                    transition: 'background 0.2s, color 0.2s',
-                  }}>{s}</button>
-                ))}
-              </div>
-            </div>
-
-            {/* Estrellas */}
-            <div>
-              <label style={labelStyle}>Calificación *</label>
-              <StarPicker value={stars} onChange={setStars} />
-            </div>
-
-            {/* Opinión */}
-            <div>
-              <label style={labelStyle}>Tu opinión *</label>
-              <textarea
-                style={{ ...inputStyle, resize: 'none', height: 88 }}
-                placeholder="Cuéntanos tu experiencia..."
-                value={text}
-                onChange={e => setText(e.target.value)}
-                maxLength={MAX_TEXT}
-              />
-              <div style={{ fontSize: 11, color: text.length >= MAX_TEXT * 0.9 ? '#f59e0b' : '#bbb', textAlign: 'right', marginTop: 3 }}>
-                {text.length} / {MAX_TEXT}
-              </div>
-            </div>
-
-            {err && (
-              <p style={{ fontSize: 12.5, color: '#ef4444', margin: 0, fontWeight: 500, padding: '8px 12px', background: '#fef2f2', borderRadius: 8 }}>
-                {err}
-              </p>
-            )}
-
-            <button
-              onClick={submit}
-              disabled={sending}
-              style={{
-                background: sending ? '#d1d5db' : '#111', color: '#fff',
-                border: 'none', borderRadius: 14, padding: '14px', width: '100%',
-                fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15,
-                cursor: sending ? 'not-allowed' : 'pointer',
-                transition: 'background 0.2s',
-                letterSpacing: '0.01em',
-              }}
+        <AnimatePresence mode="wait">
+          {sent ? (
+            /* ── Estado de éxito ── */
+            <motion.div
+              key="success"
+              initial={{ opacity: 0, scale: 0.92, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -8 }}
+              transition={{ type: 'spring', damping: 24, stiffness: 200 }}
+              style={{ textAlign: 'center', padding: '32px 0 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}
             >
-              {sending ? 'Enviando…' : 'Enviar opinión'}
-            </button>
-          </div>
-        )}
-      </div>
+              {/* Ícono con animación de entrada */}
+              <motion.div
+                initial={{ scale: 0, rotate: -30 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: 'spring', damping: 18, stiffness: 220, delay: 0.1 }}
+                style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(34,197,94,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <motion.path
+                    d="M20 6L9 17l-5-5"
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{ duration: 0.4, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                  />
+                </svg>
+              </motion.div>
+              <motion.p
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ type: 'spring', damping: 22, stiffness: 180, delay: 0.18 }}
+                style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, color: '#111', margin: 0 }}
+              >
+                Publicada con éxito
+              </motion.p>
+              <motion.p
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ type: 'spring', damping: 22, stiffness: 180, delay: 0.26 }}
+                style={{ fontSize: 13.5, color: '#666', margin: 0, lineHeight: 1.5, maxWidth: '28ch' }}
+              >
+                Tu opinión será revisada y publicada pronto. ¡Gracias!
+              </motion.p>
+              <motion.button
+                onClick={handleClose}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ type: 'spring', damping: 22, stiffness: 180, delay: 0.34 }}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                style={{ background: '#111', color: '#fff', border: 'none', borderRadius: 12, padding: '12px 36px', fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+              >
+                Cerrar
+              </motion.button>
+            </motion.div>
+          ) : (
+            /* ── Formulario ── */
+            <motion.div
+              key="form"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.2 }}
+              style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
+            >
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                  <label style={labelStyle}>Nombre *</label>
+                  <input style={inputStyle} placeholder="Tu nombre" value={name} onChange={e => setName(e.target.value)} maxLength={MAX_NAME} autoComplete="given-name"/>
+                </div>
+                <div>
+                  <label style={labelStyle}>Negocio *</label>
+                  <input style={inputStyle} placeholder="Nombre del negocio" value={biz} onChange={e => setBiz(e.target.value)} maxLength={MAX_BIZ} autoComplete="organization"/>
+                </div>
+              </div>
+
+              <div>
+                <label style={labelStyle}>Servicio contratado</label>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {SERVICES.map(s => (
+                    <motion.button
+                      key={s} type="button" onClick={() => setService(s)}
+                      whileTap={{ scale: 0.95 }}
+                      transition={{ type: 'spring', duration: 0.2, bounce: 0.3 }}
+                      style={{
+                        fontSize: 11.5, fontWeight: 600, borderRadius: 999, padding: '6px 14px',
+                        border: 'none', cursor: 'pointer',
+                        background: service === s ? '#111' : '#f0f0f0',
+                        color: service === s ? '#fff' : '#555',
+                        transition: 'background 0.18s, color 0.18s',
+                      }}
+                    >{s}</motion.button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label style={labelStyle}>Calificación *</label>
+                <StarPicker value={stars} onChange={setStars} />
+              </div>
+
+              <div>
+                <label style={labelStyle}>Tu opinión *</label>
+                <textarea
+                  style={{ ...inputStyle, resize: 'none', height: 88 }}
+                  placeholder="Cuéntanos tu experiencia..."
+                  value={text} onChange={e => setText(e.target.value)} maxLength={MAX_TEXT}
+                />
+                <div style={{ fontSize: 11, color: text.length >= MAX_TEXT * 0.9 ? '#f59e0b' : '#bbb', textAlign: 'right', marginTop: 3 }}>
+                  {text.length} / {MAX_TEXT}
+                </div>
+              </div>
+
+              <AnimatePresence>
+                {err && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ type: 'spring', duration: 0.25, bounce: 0.2 }}
+                    style={{ fontSize: 12.5, color: '#ef4444', margin: 0, fontWeight: 500, padding: '8px 12px', background: '#fef2f2', borderRadius: 8 }}
+                  >
+                    {err}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+
+              <motion.button
+                onClick={submit}
+                disabled={sending}
+                whileHover={sending ? {} : { scale: 1.02, y: -1 }}
+                whileTap={sending ? {} : { scale: 0.98 }}
+                transition={{ type: 'spring', duration: 0.25, bounce: 0.2 }}
+                style={{
+                  background: sending ? '#d1d5db' : '#111', color: '#fff',
+                  border: 'none', borderRadius: 14, padding: '14px', width: '100%',
+                  fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15,
+                  cursor: sending ? 'not-allowed' : 'pointer',
+                  letterSpacing: '0.01em',
+                }}
+              >
+                {sending ? 'Enviando…' : 'Enviar opinión'}
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
     </>
   )
 }
 
-// Duración de cada fase en ms (keyframes definidos en index.css)
-const EXIT_MS  = 300
-const ENTER_MS = 340
-
-/* ── Función que mezcla aprobadas (DB) + propias pendientes (localStorage) ── */
+/* ── Merge DB + own pending ── */
 function buildItems(approved: TestimonialItem[], own: StoredTestimonial[]): TestimonialItem[] {
   const approvedIds = new Set(approved.map(a => a.id).filter(Boolean))
-  // Limpiar del localStorage las que ya fueron aprobadas
   const stillPending = own.filter(o => !approvedIds.has(o.id))
   if (stillPending.length !== own.length) saveOwn(stillPending)
 
@@ -530,20 +531,65 @@ function buildItems(approved: TestimonialItem[], own: StoredTestimonial[]): Test
     shapes: SHAPE_SETS[(approved.length + i) % SHAPE_SETS.length],
   }))
 
-  // Solo aprobadas de DB + propias pendientes. Sin fallback hardcodeado.
   return [...pendingItems, ...approved]
 }
 
-export function TestimonialsSlider() {
-  const [items,     setItems]     = useState<TestimonialItem[]>(() => {
-    const own = loadOwn()
-    return buildItems([], own)   // render inicial con pendientes propias (si las hay)
-  })
-  const [sheetOpen, setSheetOpen] = useState(false)
-  const itemsRef = useRef(items)
-  itemsRef.current = items
+/* ── Variants para el slider con dirección ── */
+const CARD_VARIANTS = {
+  enter: (dir: number) => ({
+    x: dir >= 0 ? '72%' : '-72%',
+    opacity: 0,
+    scale: 0.92,
+    filter: 'blur(3px)',
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+    scale: 1,
+    filter: 'blur(0px)',
+  },
+  exit: (dir: number) => ({
+    x: dir >= 0 ? '-72%' : '72%',
+    opacity: 0,
+    scale: 0.92,
+    filter: 'blur(3px)',
+  }),
+}
 
-  const refreshItems = async () => {
+const SPRING = { type: 'spring' as const, damping: 28, stiffness: 220, mass: 0.85 }
+
+/* ── Dots de paginación ── */
+function Dots({ total, current }: { total: number; current: number }) {
+  if (total <= 1) return null
+  const shown = Math.min(total, 5)
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 16 }}>
+      {Array.from({ length: shown }).map((_, i) => (
+        <motion.div
+          key={i}
+          animate={{ width: i === current % shown ? 20 : 6, opacity: i === current % shown ? 1 : 0.3 }}
+          transition={{ type: 'spring', duration: 0.35, bounce: 0.3 }}
+          style={{ height: 6, borderRadius: 999, background: 'var(--orange-1)' }}
+        />
+      ))}
+    </div>
+  )
+}
+
+export function TestimonialsSlider() {
+  const [items, setItems] = useState<TestimonialItem[]>(() => buildItems([], loadOwn()))
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [currentIdx, setCurrentIdx] = useState(0)
+  const [direction, setDirection]   = useState(0) // -1 swipe left, 1 swipe right
+
+  const currentRef  = useRef(0)
+  const totalRef    = useRef(0)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  currentRef.current = currentIdx
+  totalRef.current   = items.length
+
+  const refreshItems = useCallback(async () => {
     const own = loadOwn()
     const { data } = await supabase
       .from('testimonials')
@@ -558,215 +604,141 @@ export function TestimonialsSlider() {
     }))
     const next = buildItems(approved, own)
     setItems(next)
-    // Si el índice actual ya no existe en la nueva lista, resetear a 0
-    if (shownRef.current >= next.length) {
-      shownRef.current = 0
-      setShownState(0)
-      setAnimKey(k => k + 1)
-    }
-  }
+    if (currentRef.current >= next.length) setCurrentIdx(0)
+  }, [])
 
   useEffect(() => {
     refreshItems()
-
-    // Realtime: cualquier cambio en testimonials (approve / reject / delete)
-    // recarga la lista para todos los visitantes en tiempo real
     const ch = supabase
       .channel('testimonials-public-rt')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'testimonials' }, () => {
-        refreshItems()
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'testimonials' }, refreshItems)
       .subscribe()
-
     return () => { supabase.removeChannel(ch) }
+  }, [refreshItems])
+
+  const goNext = useCallback(() => {
+    setDirection(-1)
+    setCurrentIdx(i => (i + 1) % totalRef.current)
   }, [])
 
-  const total    = items.length
-  const totalRef = useRef(total)
-  totalRef.current = total
+  const goPrev = useCallback(() => {
+    setDirection(1)
+    setCurrentIdx(i => (i - 1 + totalRef.current) % totalRef.current)
+  }, [])
 
-  const [shown,    setShownState] = useState(0)
-  const [leaving,  setLeaving]    = useState<number | null>(null)
-  const [animKey,  setAnimKey]    = useState(0)
-  const [dragX,    setDragXState] = useState(0)
-  const [snapping, setSnapping]   = useState(false)
-
-  // Refs frescos
-  const shownRef   = useRef(0)
-  const dragXRef   = useRef(0)
-  const isDragging = useRef(false)
-  const touchStart = useRef<number | null>(null)
-  const stageRef   = useRef<HTMLDivElement>(null)
-
-  // Cola de transiciones pendientes
-  const queue      = useRef<number[]>([])
-  const animating  = useRef(false)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  const setShown = (n: number) => { shownRef.current = n; setShownState(n) }
-  const setDragX = (n: number) => { dragXRef.current = n; setDragXState(n) }
-
-  // Procesa el siguiente item de la cola
-  const processQueue = () => {
-    if (queue.current.length === 0) { animating.current = false; return }
-    animating.current = true
-    const next = queue.current.shift()!
-    const cur  = shownRef.current
-
-    if (next === cur) { processQueue(); return }   // skip duplicado
-
-    setLeaving(cur)
-    setShown(next)
-    setAnimKey(k => k + 1)
-
-    // Espera que termine la salida + entrada antes del siguiente
-    setTimeout(() => {
-      setLeaving(null)
-      setTimeout(processQueue, ENTER_MS)
-    }, EXIT_MS)
-  }
-
-  // Encola un índice y arranca si está libre
-  const enqueue = (nextIdx: number) => {
-    // Evita apilar el mismo índice dos veces seguidas
-    const last = queue.current[queue.current.length - 1] ?? shownRef.current
-    if (nextIdx === last) return
-    queue.current.push(nextIdx)
-    if (!animating.current) processQueue()
-  }
-
-  const startTimer = () => {
+  const resetTimer = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current)
-    intervalRef.current = setInterval(() => {
-      enqueue((shownRef.current + 1) % totalRef.current)
-    }, 4200)
-  }
+    if (totalRef.current > 1) {
+      intervalRef.current = setInterval(goNext, 4200)
+    }
+  }, [goNext])
 
   useEffect(() => {
-    startTimer()
+    resetTimer()
     return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
-  }, [])
+  }, [resetTimer])
 
-  /* ── Touch drag ── */
-  const onTouchStart = (e: React.TouchEvent) => {
-    touchStart.current = e.touches[0].clientX
-    isDragging.current = true
-    setSnapping(false)
-    setDragX(0)
-  }
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging.current || touchStart.current === null) return
-    const raw = e.touches[0].clientX - touchStart.current
-    setDragX(raw)
-  }
-
-  const onTouchEnd = () => {
-    if (!isDragging.current || touchStart.current === null) return
-    isDragging.current = false
-    const dx        = dragXRef.current
-    const threshold = (stageRef.current?.offsetWidth ?? 320) * 0.28
-    touchStart.current = null
-    setDragX(0)
-
-    if (dx < -threshold) {
-      enqueue((shownRef.current + 1) % total)
-      startTimer()
-    } else if (dx > threshold) {
-      enqueue((shownRef.current - 1 + total) % total)
-      startTimer()
-    } else {
-      setSnapping(true)
-      setTimeout(() => setSnapping(false), 350)
-    }
-  }
+  const handleNext = () => { goNext(); resetTimer() }
+  const handlePrev = () => { goPrev(); resetTimer() }
 
   return (
     <>
-    <section style={{ padding: '56px 20px 48px', background: 'var(--bg-0)' }} aria-label="Opiniones de clientes">
-
-      {/* Cabecera */}
-      <div style={{ textAlign: 'center', marginBottom: 28 }}>
-        <span className="eyebrow">Opiniones reales</span>
-        <h2 style={{
-          fontFamily: 'var(--font-display)', fontWeight: 800,
-          fontSize: 'clamp(22px, 5vw, 34px)', lineHeight: 1.15,
-          margin: '10px 0 0', color: 'var(--fg-0)',
-        }}>
-          Lo que dicen nuestros clientes
-        </h2>
-      </div>
-
-      {/* Stage — solo si hay items */}
-      {items.length > 0 && (
-        <div style={{ maxWidth: 400, margin: '0 auto', padding: '0 12px 0 24px', position: 'relative' }}>
-          {items.length > 1 && (
-            <ArrowBtn dir="right" onClick={() => { enqueue((shownRef.current + 1) % total); startTimer() }} />
-          )}
-
-          <div
-            ref={stageRef}
-            style={{ position: 'relative', touchAction: 'pan-y', userSelect: 'none' }}
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
-          >
-            {leaving !== null && (
-              <div key={`leave-${leaving}`} className="t-exit"
-                style={{ position: 'absolute', inset: 0, zIndex: 2 }}>
-                <Card t={items[leaving]} />
-              </div>
-            )}
-            <div key={`enter-${animKey}`} className="t-enter"
-              style={{
-                position: 'relative', zIndex: 1,
-                transform: `translateX(${dragX}px)`,
-                transition: snapping ? 'transform 0.32s cubic-bezier(.16,1,.3,1)' : 'none',
-                willChange: 'transform',
-              }}
-            >
-              <Card t={items[shown]} />
-            </div>
-          </div>
+      <section style={{ padding: '56px 20px 48px', background: 'var(--bg-0)' }} aria-label="Opiniones de clientes">
+        {/* Cabecera */}
+        <div className="reveal" style={{ textAlign: 'center', marginBottom: 28 }}>
+          <span className="eyebrow">Opiniones reales</span>
+          <h2 style={{
+            fontFamily: 'var(--font-display)', fontWeight: 800,
+            fontSize: 'clamp(22px, 5vw, 34px)', lineHeight: 1.15,
+            margin: '10px 0 0', color: 'var(--fg-0)',
+          }}>
+            Lo que dicen nuestros clientes
+          </h2>
         </div>
-      )}
 
-      {/* Botón discreto "Dejar mi opinión" */}
-      <div style={{ textAlign: 'center', marginTop: 24 }}>
-        <button
-          onClick={() => setSheetOpen(true)}
-          style={{
-            background: 'none', border: '1px solid rgba(255,255,255,0.15)',
-            borderRadius: 999, padding: '8px 20px',
-            color: 'var(--fg-3)', fontSize: 12.5, fontFamily: 'var(--font-body)',
-            fontWeight: 500, cursor: 'pointer',
-            display: 'inline-flex', alignItems: 'center', gap: 7,
-            transition: 'border-color 0.2s, color 0.2s',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,90,31,0.5)'; e.currentTarget.style.color = 'var(--fg-1)' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; e.currentTarget.style.color = 'var(--fg-3)' }}
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 5v14M5 12h14"/>
-          </svg>
-          Dejar mi opinión
-        </button>
-      </div>
-    </section>
+        {/* Slider */}
+        {items.length > 0 && (
+          <div style={{ maxWidth: 400, margin: '0 auto', padding: '0 12px 0 24px', position: 'relative' }}>
+            {items.length > 1 && (
+              <>
+                <ArrowBtn dir="left"  onClick={handlePrev} />
+                <ArrowBtn dir="right" onClick={handleNext} />
+              </>
+            )}
 
-    <OpinionSheet open={sheetOpen} onClose={() => {
-      setSheetOpen(false)
-      setTimeout(async () => {
-        await refreshItems()
-        // Si el usuario acaba de enviar una opinión, su pendiente queda en el índice 0
-        // (buildItems las pone primero). Saltamos a esa posición sin animación.
-        if (loadOwn().length > 0) {
-          shownRef.current = 0
-          setShownState(0)
-          setAnimKey(k => k + 1)
-        }
-      }, 320)
-    }} />
+            {/* Stage con overflow hidden para que la card saliente no sea visible */}
+            <div style={{ overflow: 'hidden', borderRadius: 22 }}>
+              <AnimatePresence custom={direction} mode="popLayout">
+                <motion.div
+                  key={currentIdx}
+                  custom={direction}
+                  variants={CARD_VARIANTS}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={SPRING}
+                  drag={items.length > 1 ? 'x' : false}
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.18}
+                  dragMomentum={false}
+                  onDragStart={() => {
+                    if (intervalRef.current) clearInterval(intervalRef.current)
+                  }}
+                  onDragEnd={(_, info) => {
+                    const W = 400
+                    const threshold = W * 0.28
+                    const vel       = info.velocity.x
+                    const off       = info.offset.x
+
+                    if (off < -threshold || vel < -450) {
+                      goNext()
+                    } else if (off > threshold || vel > 450) {
+                      goPrev()
+                    }
+                    resetTimer()
+                  }}
+                  whileDrag={{ scale: 1.025, boxShadow: '0 16px 56px rgba(0,0,0,0.55)' }}
+                  style={{ cursor: items.length > 1 ? 'grab' : 'default', willChange: 'transform' }}
+                >
+                  <Card t={items[currentIdx]} />
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            <Dots total={items.length} current={currentIdx} />
+          </div>
+        )}
+
+        {/* Botón "Dejar mi opinión" */}
+        <div style={{ textAlign: 'center', marginTop: 28 }}>
+          <motion.button
+            onClick={() => setSheetOpen(true)}
+            whileHover={{ scale: 1.04, borderColor: 'rgba(255,90,31,0.5)', color: 'var(--fg-1)' }}
+            whileTap={{ scale: 0.97 }}
+            transition={{ type: 'spring', duration: 0.25, bounce: 0.2 }}
+            style={{
+              background: 'none', border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: 999, padding: '8px 20px',
+              color: 'var(--fg-3)', fontSize: 12.5, fontFamily: 'var(--font-body)',
+              fontWeight: 500, cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: 7,
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            Dejar mi opinión
+          </motion.button>
+        </div>
+      </section>
+
+      <OpinionSheet open={sheetOpen} onClose={() => {
+        setSheetOpen(false)
+        setTimeout(async () => {
+          await refreshItems()
+          if (loadOwn().length > 0) setCurrentIdx(0)
+        }, 320)
+      }} />
     </>
   )
 }

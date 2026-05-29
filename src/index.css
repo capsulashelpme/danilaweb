@@ -106,17 +106,7 @@
   p, h1, h2, h3, h4, h5 { overflow-wrap: break-word; word-break: break-word; }
 }
 
-/* ── TestimonialsSlider animations ──────────────────────────────────────── */
-@keyframes t-exit {
-  from { transform: translateX(0)     scale(1); }
-  to   { transform: translateX(-115%) scale(0.90); }
-}
-@keyframes t-enter {
-  from { transform: scale(0.86); opacity: 0; }
-  to   { transform: scale(1);    opacity: 1; }
-}
-.t-exit  { animation: t-exit  0.30s cubic-bezier(.4,0,.6,1)  forwards; }
-.t-enter { animation: t-enter 0.34s cubic-bezier(.16,1,.3,1) forwards; }
+/* ── TestimonialsSlider — animaciones manejadas por Framer Motion ── */
 
 /* ── TrustStrip — marquee RAF ─────────────────────────────────────────── */
 
