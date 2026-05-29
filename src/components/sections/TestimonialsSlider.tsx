@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useMotionValue, animate } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 
 /* ── Tipos ── */
@@ -537,32 +537,6 @@ function buildItems(approved: TestimonialItem[], own: StoredTestimonial[]): Test
   return [...pendingItems, ...approved]
 }
 
-/* ── Variants para el slider con dirección ── */
-// dir = -1 → el usuario deslizó LEFT (va al siguiente): card sale por izquierda, nueva entra por derecha
-// dir =  1 → el usuario deslizó RIGHT (va al anterior): card sale por derecha, nueva entra por izquierda
-const CARD_VARIANTS = {
-  enter: (dir: number) => ({
-    x: dir <= 0 ? '72%' : '-72%',   // siguiente → entra desde la derecha | anterior → desde la izquierda
-    opacity: 0,
-    scale: 0.92,
-    filter: 'blur(3px)',
-  }),
-  center: {
-    x: 0,
-    opacity: 1,
-    scale: 1,
-    filter: 'blur(0px)',
-  },
-  exit: (dir: number) => ({
-    x: dir <= 0 ? '-72%' : '72%',   // siguiente → sale por izquierda | anterior → sale por derecha
-    opacity: 0,
-    scale: 0.92,
-    filter: 'blur(3px)',
-  }),
-}
-
-const SPRING = { type: 'spring' as const, damping: 28, stiffness: 220, mass: 0.85 }
-
 /* ── Dots de paginación ── */
 function Dots({ total, current }: { total: number; current: number }) {
   if (total <= 1) return null
@@ -584,15 +558,17 @@ function Dots({ total, current }: { total: number; current: number }) {
 export function TestimonialsSlider() {
   const [items, setItems] = useState<TestimonialItem[]>(() => buildItems([], loadOwn()))
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [currentIdx, setCurrentIdx] = useState(0)
-  const [direction, setDirection]   = useState(0) // -1 swipe left, 1 swipe right
+  const [idx, setIdx]   = useState(0)
 
-  const currentRef  = useRef(0)
-  const totalRef    = useRef(0)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  currentRef.current = currentIdx
-  totalRef.current   = items.length
+  // Un solo motion value controla la posición X de la card — drag y transición comparten el mismo valor
+  const x            = useMotionValue(0)
+  const animating    = useRef(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const idxRef       = useRef(0)
+  const totalRef     = useRef(0)
+  const intervalRef  = useRef<ReturnType<typeof setInterval> | null>(null)
+  idxRef.current   = idx
+  totalRef.current = items.length
 
   const refreshItems = useCallback(async () => {
     const own = loadOwn()
@@ -609,7 +585,7 @@ export function TestimonialsSlider() {
     }))
     const next = buildItems(approved, own)
     setItems(next)
-    if (currentRef.current >= next.length) setCurrentIdx(0)
+    if (idxRef.current >= next.length) setIdx(0)
   }, [])
 
   useEffect(() => {
@@ -621,29 +597,43 @@ export function TestimonialsSlider() {
     return () => { supabase.removeChannel(ch) }
   }, [refreshItems])
 
-  const goNext = useCallback(() => {
-    setDirection(-1)
-    setCurrentIdx(i => (i + 1) % totalRef.current)
-  }, [])
+  // Navega hacia newIdx saliendo por dir (-1 = izquierda / 1 = derecha)
+  const navigateTo = useCallback((newIdx: number, dir: -1 | 1) => {
+    if (animating.current || totalRef.current <= 1) return
+    animating.current = true
 
-  const goPrev = useCallback(() => {
-    setDirection(1)
-    setCurrentIdx(i => (i - 1 + totalRef.current) % totalRef.current)
-  }, [])
+    const W     = containerRef.current?.offsetWidth ?? 360
+    const exitX = dir === -1 ? -W * 1.15 : W * 1.15   // hacia donde sale la card actual
+    const enterX = -exitX                               // desde donde entra la nueva card
+
+    // 1) La card actual sale — spring rápido y decidido
+    animate(x, exitX, { type: 'spring', damping: 32, stiffness: 280, restDelta: 1 }).then(() => {
+      // 2) Snap: nueva card aparece fuera de pantalla SIN animación
+      x.set(enterX)
+      setIdx(newIdx)
+      // 3) Un frame para que React renderice la nueva card en enterX
+      requestAnimationFrame(() => {
+        // 4) La nueva card entra — spring más suave y natural
+        animate(x, 0, { type: 'spring', damping: 28, stiffness: 200, restDelta: 0.5 }).then(() => {
+          animating.current = false
+        })
+      })
+    })
+  }, [x])
+
+  const goNext = useCallback(() => {
+    navigateTo((idxRef.current + 1) % totalRef.current, -1)
+  }, [navigateTo])
 
   const resetTimer = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current)
-    if (totalRef.current > 1) {
-      intervalRef.current = setInterval(goNext, 4200)
-    }
+    if (totalRef.current > 1) intervalRef.current = setInterval(goNext, 4200)
   }, [goNext])
 
   useEffect(() => {
     resetTimer()
     return () => { if (intervalRef.current) clearInterval(intervalRef.current) }
   }, [resetTimer])
-
-  const handleNext = () => { goNext(); resetTimer() }
 
   return (
     <>
@@ -664,44 +654,39 @@ export function TestimonialsSlider() {
         {items.length > 0 && (
           <div style={{ maxWidth: 400, margin: '0 auto', padding: '0 24px', position: 'relative' }}>
             {items.length > 1 && (
-              <ArrowBtn dir="right" onClick={handleNext} />
+              <ArrowBtn dir="right" onClick={() => { goNext(); resetTimer() }} />
             )}
 
-            {/* Stage con overflow hidden para que la card saliente no sea visible */}
-            <div style={{ overflow: 'hidden', borderRadius: 22 }}>
-              <AnimatePresence custom={direction} mode="popLayout">
-                <motion.div
-                  key={currentIdx}
-                  custom={direction}
-                  variants={CARD_VARIANTS}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={SPRING}
-                  drag={items.length > 1 ? 'x' : false}
-                  dragConstraints={{ left: 0, right: 0 }}
-                  dragElastic={0.18}
-                  dragMomentum={false}
-                  onDragStart={() => {
-                    if (intervalRef.current) clearInterval(intervalRef.current)
-                  }}
-                  onDragEnd={(_, info) => {
-                    const threshold = 110
-                    const vel = info.velocity.x
-                    const off = info.offset.x
-                    if (off < -threshold || vel < -450) { goNext() }
-                    else if (off > threshold || vel > 450) { goPrev() }
-                    resetTimer()
-                  }}
-                  whileDrag={{ scale: 1.025, boxShadow: '0 16px 56px rgba(0,0,0,0.55)' }}
-                  style={{ cursor: items.length > 1 ? 'grab' : 'default', willChange: 'transform' }}
-                >
-                  <Card t={items[currentIdx]} />
-                </motion.div>
-              </AnimatePresence>
+            {/* Stage — sin overflow:hidden para que la card no se corte al deslizar */}
+            <div ref={containerRef} style={{ position: 'relative' }}>
+              <motion.div
+                style={{ x, willChange: 'transform', cursor: items.length > 1 ? 'grab' : 'default' }}
+                drag={items.length > 1 ? 'x' : false}
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={{ left: 0.22, right: 0.22 }}
+                dragMomentum={false}
+                onDragStart={() => { if (intervalRef.current) clearInterval(intervalRef.current) }}
+                onDragEnd={(_, info) => {
+                  const threshold = 90
+                  const vel = info.velocity.x
+                  const off = info.offset.x
+                  if (off < -threshold || vel < -400) {
+                    navigateTo((idxRef.current + 1) % totalRef.current, -1)
+                  } else if (off > threshold || vel > 400) {
+                    navigateTo((idxRef.current - 1 + totalRef.current) % totalRef.current, 1)
+                  } else {
+                    // Spring de regreso al centro sin animating flag
+                    animate(x, 0, { type: 'spring', damping: 26, stiffness: 300 })
+                  }
+                  resetTimer()
+                }}
+                whileDrag={{ scale: 1.02 }}
+              >
+                <Card t={items[idx]} />
+              </motion.div>
             </div>
 
-            <Dots total={items.length} current={currentIdx} />
+            <Dots total={items.length} current={idx} />
 
             {/* Hint "Desliza para ver más" */}
             {items.length > 1 && (
@@ -763,7 +748,7 @@ export function TestimonialsSlider() {
         setSheetOpen(false)
         setTimeout(async () => {
           await refreshItems()
-          if (loadOwn().length > 0) setCurrentIdx(0)
+          if (loadOwn().length > 0) setIdx(0)
         }, 320)
       }} />
     </>
