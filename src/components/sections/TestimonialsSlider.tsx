@@ -565,8 +565,6 @@ export function TestimonialsSlider() {
   const idxRef      = useRef(0)
   const totalRef    = useRef(0)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  // Para detectar swipe táctil
-  const dragStartX  = useRef(0)
   idxRef.current   = idx
   totalRef.current = items.length
 
@@ -645,30 +643,28 @@ export function TestimonialsSlider() {
             )}
 
             {/* Stage con overflow hidden para que las cards entren/salgan limpias */}
-            <div
-              style={{ position: 'relative', overflow: 'hidden', borderRadius: 22 }}
-              onTouchStart={e => { dragStartX.current = e.touches[0].clientX }}
-              onTouchEnd={e => {
-                const diff = dragStartX.current - e.changedTouches[0].clientX
-                if (Math.abs(diff) < 40) return
-                if (diff > 0) { goNext(); resetTimer() }
-                else          { goPrev(); resetTimer() }
-              }}
-            >
-
+            <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 22 }}>
               <AnimatePresence mode="popLayout" custom={dir} initial={false}>
                 <motion.div
                   key={idx}
                   custom={dir}
                   variants={{
-                    enter:  (d: number) => ({ x: d > 0 ? '100%' : '-100%', opacity: 0 }),
-                    center: { x: 0, opacity: 1 },
-                    exit:   (d: number) => ({ x: d > 0 ? '-100%' : '100%', opacity: 0 }),
+                    enter:  (d: number) => ({ x: d > 0 ? '100%' : '-100%' }),
+                    center: { x: 0 },
+                    exit:   (d: number) => ({ x: d > 0 ? '-60%' : '60%', opacity: 0, scale: 0.95 }),
                   }}
                   initial="enter"
                   animate="center"
                   exit="exit"
-                  transition={{ duration: 0.32, ease: [0.32, 0, 0.67, 0] }}
+                  transition={{ type: 'spring', duration: 0.38, bounce: 0.1 }}
+                  drag={items.length > 1 ? 'x' : false}
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.18}
+                  onDragEnd={(_, info) => {
+                    if (info.offset.x < -60 || info.velocity.x < -300) { goNext(); resetTimer() }
+                    else if (info.offset.x > 60 || info.velocity.x > 300) { goPrev(); resetTimer() }
+                  }}
+                  style={{ cursor: items.length > 1 ? 'grab' : 'default', touchAction: 'pan-y' }}
                 >
                   <Card t={items[idx]} />
                 </motion.div>
